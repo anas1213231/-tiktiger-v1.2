@@ -14,13 +14,17 @@ jobs:
       - name: Install Theos and dependencies
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install ldid dpkg
+          brew install ldid dpkg xz
           git clone --depth 1 https://github.com/theos/theos.git $THEOS
           rm -rf $THEOS/sdks
           git clone --depth 1 https://github.com/theos/sdks.git $THEOS/sdks
+          # Install dm.pl for packaging
+          curl -sL https://raw.githubusercontent.com/theos/dm.pl/master/dm.pl -o $THEOS/bin/dm.pl
+          chmod +x $THEOS/bin/dm.pl
       - name: Build package
         run: |
           export THEOS=/tmp/theos
+          export PATH="$THEOS/bin:$PATH"
           make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
       - uses: actions/upload-artifact@v4
         with:
