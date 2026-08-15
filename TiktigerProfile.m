@@ -30,7 +30,6 @@ static void new_profileViewDidAppear(id self, SEL _cmd, BOOL animated) {
     }
 }
 
-static void (*orig_saveProfilePhoto)(id, SEL, id);
 static void tt_saveProfilePhoto(id self, SEL _cmd, id gesture) {
     if (!TTBool(@"saveProfilePhoto")) return;
     id user = nil;
