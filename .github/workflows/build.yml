@@ -17,9 +17,18 @@ jobs:
           cd $GITHUB_WORKSPACE/theos && git submodule update --init --recursive 2>/dev/null || true
           rm -rf $GITHUB_WORKSPACE/theos/sdks && mkdir -p $GITHUB_WORKSPACE/theos/sdks
           curl -sL https://github.com/theos/sdks/releases/latest/download/iPhoneOS16.5.sdk.tar.xz | tar -xJf - -C $GITHUB_WORKSPACE/theos/sdks/
-          mkdir -p $GITHUB_WORKSPACE/theos/vendor/lib $GITHUB_WORKSPACE/theos/vendor/include
           mkdir -p $GITHUB_WORKSPACE/theos/vendor/include $GITHUB_WORKSPACE/theos/vendor/lib
-          mkdir -p $GITHUB_WORKSPACE/theos/vendor/include $GITHUB_WORKSPACE/theos/vendor/lib
+      - name: Create CydiaSubstrate stub
+        run: |
+          mkdir -p CydiaSubstrate.framework
+          # Create a minimal stub dylib for CydiaSubstrate
+          cat > /tmp/stub.c << 'STUBEOF'
+          #include <objc/runtime.h>
+          void MSHookMessageEx(Class cls, SEL sel, IMP imp, IMP *old) {}
+          void MSHookFunction(void *sym, void *hook, void **old) {}
+          STUBEOF
+          xcrun -sdk iphoneos clang -arch arm64 -arch arm64e -dynamiclib -o CydiaSubstrate.framework/CydiaSubstrate /tmp/stub.c -install_name @rpath/CydiaSubstrate.framework/CydiaSubstrate -framework Foundation 2>/dev/null || \
+          xcrun clang -target arm64-apple-ios14.0 -dynamiclib -o CydiaSubstrate.framework/CydiaSubstrate /tmp/stub.c -install_name @rpath/CydiaSubstrate.framework/CydiaSubstrate -isysroot $(xcrun --sdk iphoneos --show-sdk-path)
       - name: Build package
         run: |
           export THEOS=$GITHUB_WORKSPACE/theos
@@ -29,7 +38,7 @@ jobs:
           mkdir -p output
           find .theos -name "Tiktiger.dylib" -exec cp {} output/ \;
           if [ ! -f output/Tiktiger.dylib ]; then
-            find .theos -name "*.dylib" -exec cp {} output/ \;
+            find .theos -name "*.dylib" ! -name "CydiaSubstrate" -exec cp {} output/ \;
           fi
           ls -la output/
       - uses: actions/upload-artifact@v4

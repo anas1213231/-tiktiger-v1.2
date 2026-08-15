@@ -7,8 +7,8 @@
 extern "C" {
 #endif
 
-void MSHookMessageEx(Class _class, SEL message, IMP hook, IMP *old);
-void MSHookFunction(void *symbol, void *hook, void **old);
+void MSHookMessageEx(Class _class, SEL message, IMP hook, IMP *old) __attribute__((weak_import));
+void MSHookFunction(void *symbol, void *hook, void **old) __attribute__((weak_import));
 
 #ifdef __cplusplus
 }
