@@ -17,9 +17,11 @@ jobs:
           cd $GITHUB_WORKSPACE/theos && git submodule update --init --recursive 2>/dev/null || true
           rm -rf $GITHUB_WORKSPACE/theos/sdks && mkdir -p $GITHUB_WORKSPACE/theos/sdks
           curl -sL https://github.com/theos/sdks/releases/latest/download/iPhoneOS16.5.sdk.tar.xz | tar -xJf - -C $GITHUB_WORKSPACE/theos/sdks/
-          rm -rf $GITHUB_WORKSPACE/theos/vendor/lib && mkdir -p $GITHUB_WORKSPACE/theos/vendor/lib
+          mkdir -p $GITHUB_WORKSPACE/theos/vendor/lib $GITHUB_WORKSPACE/theos/vendor/include
           curl -sL https://github.com/nicklama/cydiasubstrate-headers/raw/main/libsubstrate.dylib -o $GITHUB_WORKSPACE/theos/vendor/lib/libsubstrate.dylib || true
+          mkdir -p $GITHUB_WORKSPACE/theos/vendor/include $GITHUB_WORKSPACE/theos/vendor/lib
           curl -sL https://raw.githubusercontent.com/nicklama/cydiasubstrate-headers/main/substrate.h -o $GITHUB_WORKSPACE/theos/vendor/include/substrate.h || true
+          mkdir -p $GITHUB_WORKSPACE/theos/vendor/include $GITHUB_WORKSPACE/theos/vendor/lib
       - name: Build package
         run: |
           export THEOS=$GITHUB_WORKSPACE/theos
