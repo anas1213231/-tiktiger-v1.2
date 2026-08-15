@@ -29,7 +29,7 @@ static UIViewController *TTTopController(void) {
     if (controller.navigationController.visibleViewController) controller = controller.navigationController.visibleViewController;
     return controller;
 }
-static void TTConfirm(NSString *title, NSString *message, dispatch_block_t accept) {
+static void TTConfirmSafe(NSString *title, NSString *message, dispatch_block_t accept) {
     dispatch_async(dispatch_get_main_queue(), ^{
         UIViewController *presenter = TTTopController();
         if (!presenter) return;
@@ -43,13 +43,13 @@ static void TTConfirm(NSString *title, NSString *message, dispatch_block_t accep
 static IMP TTOriginalLike;
 static void TTHookLike(id self, SEL _cmd) {
     if (!TTBool(@"confirmLike")) { if (TTOriginalLike) ((TTVoidIMP)TTOriginalLike)(self, _cmd); return; }
-    TTConfirm(@"تأكيد الإعجاب", @"هل تريد الإعجاب بهذا الفيديو؟", ^{ if (TTOriginalLike) ((TTVoidIMP)TTOriginalLike)(self, _cmd); });
+    TTConfirmSafe(@"تأكيد الإعجاب", @"هل تريد الإعجاب بهذا الفيديو؟", ^{ if (TTOriginalLike) ((TTVoidIMP)TTOriginalLike)(self, _cmd); });
 }
 
 static IMP TTOriginalFollow;
 static void TTHookFollow(id self, SEL _cmd, id argument) {
     if (!TTBool(@"confirmFollow")) { if (TTOriginalFollow) ((TTVoidIDIMP)TTOriginalFollow)(self, _cmd, argument); return; }
-    TTConfirm(@"تأكيد المتابعة", @"هل تريد متابعة هذا الحساب؟", ^{ if (TTOriginalFollow) ((TTVoidIDIMP)TTOriginalFollow)(self, _cmd, argument); });
+    TTConfirmSafe(@"تأكيد المتابعة", @"هل تريد متابعة هذا الحساب؟", ^{ if (TTOriginalFollow) ((TTVoidIDIMP)TTOriginalFollow)(self, _cmd, argument); });
 }
 
 static IMP TTOriginalStoryRead;
