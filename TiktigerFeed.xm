@@ -1,6 +1,5 @@
 #import <UIKit/UIKit.h>
-#import <AVFoundation/AVFoundation.h>
-#import <CoreMedia/CoreMedia.h>
+#import <objc/runtime.h>
 #import "TiktigerPrefs.h"
 
 @interface AWEFeedContainerViewController : UIViewController @end
@@ -10,16 +9,24 @@
 @interface AWEVideoModel : NSObject @end
 @interface AWENormalModeTabBarGeneralButton : UIButton @end
 
-static const NSInteger TTSettingsTag = 2101;
-static const NSInteger TTDownloadTag = 2002;
+static void ttOpenSettings(id self, SEL _cmd) {
+    TTShowSettings((UIViewController *)self);
+}
+
+static void ttDownloadVideo(id self, SEL _cmd) {
+    id model = nil;
+    @try { model = [self valueForKey:@"awemeModel"]; } @catch (NSException *e) {}
+    TTDownloadMedia(TTExtractMediaURL(model), (UIViewController *)self, TTBool(@"showShareAfterDownload"));
+}
 
 %hook AWEFeedContainerViewController
 - (void)viewDidAppear:(BOOL)animated {
     %orig;
     if (!TTBool(@"floatingHUD")) return;
-    if ([self.view viewWithTag:TTSettingsTag]) return;
+    if ([self.view viewWithTag:2101]) return;
+    class_addMethod([self class], @selector(tt_open:), (IMP)ttOpenSettings, "v@:@");
     UIButton *btn = [UIButton buttonWithType:UIButtonTypeSystem];
-    btn.tag = TTSettingsTag;
+    btn.tag = 2101;
     btn.frame = CGRectMake(self.view.bounds.size.width - 60, 50, 44, 44);
     btn.backgroundColor = [UIColor colorWithRed:0.12 green:0.72 blue:0.28 alpha:0.96];
     btn.layer.cornerRadius = 22;
@@ -27,10 +34,6 @@ static const NSInteger TTDownloadTag = 2002;
     btn.titleLabel.font = [UIFont systemFontOfSize:23];
     [btn addTarget:self action:@selector(tt_open:) forControlEvents:UIControlEventTouchUpInside];
     [self.view addSubview:btn];
-}
-%new
-- (void)tt_open:(id)sender {
-    TTShowSettings((UIViewController *)self);
 }
 - (void)pullToRefresh { if (TTBool(@"disableRefresh")) return; %orig; }
 - (void)refresh { if (TTBool(@"disableRefresh")) return; %orig; }
@@ -57,12 +60,12 @@ static const NSInteger TTDownloadTag = 2002;
         p.tag = 2001;
         p.frame = CGRectMake(0, self.view.bounds.size.height - 2, self.view.bounds.size.width, 2);
         p.progressTintColor = [UIColor whiteColor];
-        p.trackTintColor = [UIColor colorWithWhite:1 alpha:0.18];
         [self.view addSubview:p];
     }
-    if (TTBool(@"downloadButton") && ![self.view viewWithTag:TTDownloadTag]) {
+    if (TTBool(@"downloadButton") && ![self.view viewWithTag:2002]) {
+        class_addMethod([self class], @selector(tt_dl:), (IMP)ttDownloadVideo, "v@:@");
         UIButton *dl = [UIButton buttonWithType:UIButtonTypeSystem];
-        dl.tag = TTDownloadTag;
+        dl.tag = 2002;
         dl.frame = CGRectMake(18, self.view.bounds.size.height - 330, 48, 48);
         dl.backgroundColor = [UIColor colorWithWhite:0 alpha:0.38];
         dl.layer.cornerRadius = 24;
@@ -72,12 +75,6 @@ static const NSInteger TTDownloadTag = 2002;
         [self.view addSubview:dl];
     }
 }
-%new
-- (void)tt_dl:(id)sender {
-    id model = nil;
-    @try { model = [self valueForKey:@"awemeModel"]; } @catch (NSException *e) {}
-    TTDownloadMedia(TTExtractMediaURL(model), (UIViewController *)self, TTBool(@"showShareAfterDownload"));
-}
 %end
 
 %hook AWEAwemeModel
@@ -86,7 +83,7 @@ static const NSInteger TTDownloadTag = 2002;
 
 %hook AWEVideoModel
 - (BOOL)isLoop { if (TTBool(@"stopReplay")) return NO; return %orig; }
-- (BOOL)forceHD { if (TTBool(@"highQualityUpload") || TTBool(@"directHDDownload")) return YES; return %orig; }
+- (BOOL)forceHD { if (TTBool(@"highQualityUpload")) return YES; return %orig; }
 %end
 
 %hook AWENormalModeTabBarGeneralButton
