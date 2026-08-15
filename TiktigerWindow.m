@@ -1,5 +1,6 @@
 #import <UIKit/UIKit.h>
 #import "TiktigerPrefs.h"
+#import "TiktigerResources.h"
 
 static UIWindow *TTOverlayWindow;
 static UINavigationController *TTSettingsNavigation;
@@ -28,8 +29,9 @@ static NSArray *TTDisplaySections(void) {
 - (void)layoutSubviews {
     [super layoutSubviews];
     self.backgroundColor = UIColor.clearColor;
+    self.contentView.frame = CGRectInset(self.bounds, 12, 2);
     self.contentView.backgroundColor = TTCellBackground();
-    self.contentView.layer.cornerRadius = 13;
+    self.contentView.layer.cornerRadius = 12;
     self.contentView.layer.masksToBounds = YES;
     self.imageView.tintColor = TTBlue();
     self.textLabel.textColor = UIColor.whiteColor;
@@ -52,7 +54,7 @@ static NSArray *TTDisplaySections(void) {
     self.tableView.backgroundColor = TTBackground();
     self.tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
     self.tableView.contentInset = UIEdgeInsetsMake(0, 0, 26, 0);
-    self.tableView.rowHeight = 66;
+    self.tableView.rowHeight = 58;
     self.navigationController.navigationBar.barStyle = UIBarStyleBlack;
     self.navigationController.navigationBar.tintColor = TTCyan();
     self.navigationController.navigationBar.titleTextAttributes = @{NSForegroundColorAttributeName: UIColor.whiteColor, NSFontAttributeName: [UIFont systemFontOfSize:17 weight:UIFontWeightBold]};
@@ -61,28 +63,31 @@ static NSArray *TTDisplaySections(void) {
     self.tableView.tableHeaderView = [self tt_headerView];
 }
 - (UIView *)tt_headerView {
-    UIView *header = [[UIView alloc] initWithFrame:CGRectMake(0, 0, self.view.bounds.size.width, 142)];
+    CGFloat width = MAX(self.view.bounds.size.width, UIScreen.mainScreen.bounds.size.width);
+    UIView *header = [[UIView alloc] initWithFrame:CGRectMake(0, 0, width, 150)];
     header.backgroundColor = TTBackground();
-    UIImageView *logo = [[UIImageView alloc] initWithFrame:CGRectMake(22, 32, 76, 76)];
-    logo.layer.cornerRadius = 18;
+    UIImageView *logo = [[UIImageView alloc] initWithFrame:CGRectMake((width - 80) / 2.0, 8, 80, 80)];
+    logo.layer.cornerRadius = 12;
     logo.layer.masksToBounds = YES;
-    logo.contentMode = UIViewContentModeScaleAspectFill;
-    NSString *logoPath = [[NSBundle bundleForClass:self.class] pathForResource:@"tiktiger-main" ofType:@"png"];
-    if (logoPath) logo.image = [UIImage imageWithContentsOfFile:logoPath];
+    logo.contentMode = UIViewContentModeScaleAspectFit;
+    logo.image = TTMainLogo();
+    if (!logo.image) {
+        NSString *logoPath = [[NSBundle bundleForClass:self.class] pathForResource:@"tiktiger-main" ofType:@"png"];
+        if (logoPath) logo.image = [UIImage imageWithContentsOfFile:logoPath];
+    }
     [header addSubview:logo];
-    UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(112, 36, header.bounds.size.width - 132, 35)];
+    UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(16, 90, width - 32, 30)];
     title.text = @"Tiktiger v1.1";
+    title.textAlignment = NSTextAlignmentCenter;
     title.textColor = UIColor.whiteColor;
-    title.font = [UIFont systemFontOfSize:25 weight:UIFontWeightBold];
+    title.font = [UIFont systemFontOfSize:22 weight:UIFontWeightBold];
     [header addSubview:title];
-    UILabel *developer = [[UILabel alloc] initWithFrame:CGRectMake(114, 76, header.bounds.size.width - 136, 25)];
-    developer.text = @"@ucorc  •  TikTok Enhancement Suite";
+    UILabel *developer = [[UILabel alloc] initWithFrame:CGRectMake(16, 121, width - 32, 20)];
+    developer.text = @"@ucorc  •  TikTok 45.3";
+    developer.textAlignment = NSTextAlignmentCenter;
     developer.textColor = [UIColor colorWithWhite:.62 alpha:1];
-    developer.font = [UIFont systemFontOfSize:13 weight:UIFontWeightMedium];
+    developer.font = [UIFont systemFontOfSize:12 weight:UIFontWeightMedium];
     [header addSubview:developer];
-    UIView *line = [[UIView alloc] initWithFrame:CGRectMake(20, 130, header.bounds.size.width - 40, 1)];
-    line.backgroundColor = [UIColor colorWithWhite:.25 alpha:1];
-    [header addSubview:line];
     return header;
 }
 - (void)tt_close { [self dismissViewControllerAnimated:YES completion:nil]; }
@@ -105,7 +110,7 @@ static NSArray *TTDisplaySections(void) {
     return container;
 }
 - (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section { return 42; }
-- (CGFloat)tableView:(UITableView *)tableView heightForFooterInSection:(NSInteger)section { return 10; }
+- (CGFloat)tableView:(UITableView *)tableView heightForFooterInSection:(NSInteger)section { return 5; }
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     TTFeatureCell *cell = [tableView dequeueReusableCellWithIdentifier:@"TiktigerFeatureCell"];
     if (!cell) cell = [[TTFeatureCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"TiktigerFeatureCell"];
@@ -145,7 +150,9 @@ static NSArray *TTDisplaySections(void) {
     button.backgroundColor = [UIColor colorWithRed:.05 green:.72 blue:.5 alpha:1];
     button.accessibilityIdentifier = @"TiktigerFloatingButton";
     NSString *downloadPath = [[NSBundle bundleForClass:self.class] pathForResource:@"tiktiger-download" ofType:@"png"];
-    if (downloadPath) { [button setImage:[UIImage imageWithContentsOfFile:downloadPath] forState:UIControlStateNormal]; button.imageView.contentMode = UIViewContentModeScaleAspectFit; button.imageEdgeInsets = UIEdgeInsetsMake(7, 7, 7, 7); }
+    UIImage *downloadImage = TTDownloadIcon();
+    if (!downloadImage && downloadPath) downloadImage = [UIImage imageWithContentsOfFile:downloadPath];
+    if (downloadImage) { [button setImage:downloadImage forState:UIControlStateNormal]; button.imageView.contentMode = UIViewContentModeScaleAspectFit; button.imageEdgeInsets = UIEdgeInsetsMake(7, 7, 7, 7); }
     else { [button setTitle:@"TT" forState:UIControlStateNormal]; [button setTitleColor:UIColor.whiteColor forState:UIControlStateNormal]; button.titleLabel.font = [UIFont systemFontOfSize:15 weight:UIFontWeightBold]; }
     [button addTarget:self action:@selector(tt_open) forControlEvents:UIControlEventTouchUpInside];
     [button addGestureRecognizer:[[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(tt_pan:)]];
