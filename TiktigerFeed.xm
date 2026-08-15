@@ -126,7 +126,7 @@ static void TTFeedUpdateMetadata(UIView *container, id aweme) {
 - (void)pullToRefresh { if (TTBool(@"disableRefresh")) return; %orig; }
 - (void)refresh { if (TTBool(@"disableRefresh")) return; %orig; }
 - (BOOL)shouldShowRecommendedFeed { if (TTBool(@"skipRecommended")) return NO; return %orig; }
-- (void)setUIHidden:(BOOL)hidden { if (TTBool(@"hideInterface")) hidden = YES; %orig(hidden); }
+- (void)setUIHidden:(BOOL)hidden { if (TTBool(@"hideInterface")) hidden = YES; %orig; }
 %end
 
 %hook AWEFeedCellViewController
@@ -152,7 +152,7 @@ static void TTFeedUpdateMetadata(UIView *container, id aweme) {
     }
     if (TTBool(@"contentCountry")) self.view.accessibilityHint = TTFeedCountryCode(TTFeedValue(model, @[@"region", @"author.region"]));
 }
-- (void)setCommentText:(NSString *)text { if (TTBool(@"expandedComments") && text.length > 4096) { %orig([text substringToIndex:4096]); return; } %orig(text); }
+- (void)setCommentText:(NSString *)text { %orig; }
 %end
 
 %hook AWEPlayInteractionViewController
@@ -206,6 +206,6 @@ static void TTFeedUpdateMetadata(UIView *container, id aweme) {
 %end
 
 %hook AWENormalModeTabBarGeneralButton
-- (void)setHidden:(BOOL)hidden { if (TTBool(@"hideLive") && [self.accessibilityLabel.lowercaseString containsString:@"live"]) hidden = YES; %orig(hidden); }
-- (void)sendActionsForControlEvents:(UIControlEvents)events { if (TTBool(@"hideLive") && [self.accessibilityLabel.lowercaseString containsString:@"live"]) return; %orig(events); }
+- (void)setHidden:(BOOL)hidden { if (TTBool(@"hideLive") && [self.accessibilityLabel.lowercaseString containsString:@"live"]) hidden = YES; %orig; }
+- (void)sendActionsForControlEvents:(UIControlEvents)events { if (TTBool(@"hideLive") && [self.accessibilityLabel.lowercaseString containsString:@"live"]) return; %orig; }
 %end

@@ -20,10 +20,10 @@
 - (void)startRunning{ if(TTBool(@"fakeCamera")){ [[NSNotificationCenter defaultCenter]postNotificationName:@"TiktigerFakeCameraRequested" object:self]; } %orig; }
 %end
 %hook AVCaptureVideoDataOutput
-- (void)setSampleBufferDelegate:(id)delegate queue:(dispatch_queue_t)queue{ if(TTBool(@"frameInjector")){ [[NSUserDefaults standardUserDefaults]setBool:YES forKey:@"Tiktiger.frameInjectorActive"]; } %orig(delegate,queue); }
+- (void)setSampleBufferDelegate:(id)delegate queue:(dispatch_queue_t)queue{ if(TTBool(@"frameInjector")){ [[NSUserDefaults standardUserDefaults]setBool:YES forKey:@"Tiktiger.frameInjectorActive"]; } %orig; }
 %end
 %hook AVAudioSession
-- (BOOL)setActive:(BOOL)active error:(NSError **)error{ if(TTBool(@"fakeMicrophone")){ [[NSUserDefaults standardUserDefaults]setBool:YES forKey:@"Tiktiger.microphoneInjectionActive"]; } return %orig(active,error); }
+- (BOOL)setActive:(BOOL)active error:(NSError **)error{ if(TTBool(@"fakeMicrophone")){ [[NSUserDefaults standardUserDefaults]setBool:YES forKey:@"Tiktiger.microphoneInjectionActive"]; } return %orig; }
 %end
 %hook AWECommentListViewController
 - (void)viewDidLoad{ %orig; if(TTBool(@"saveCommentPhotos")){ UILongPressGestureRecognizer *g=[[UILongPressGestureRecognizer alloc]initWithTarget:self action:@selector(ttSaveCommentMedia:)]; [self.view addGestureRecognizer:g]; } }
