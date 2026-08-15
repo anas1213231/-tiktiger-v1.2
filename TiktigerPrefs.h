@@ -1,7 +1,7 @@
 #import <UIKit/UIKit.h>
-FOUNDATION_EXPORT NSArray *TTFeatureSections(void);
 #import <Foundation/Foundation.h>
-#import <Photos/Photos.h>
+
+FOUNDATION_EXPORT NSArray *TTFeatureSections(void);
 FOUNDATION_EXPORT BOOL TTBool(NSString *key);
 FOUNDATION_EXPORT void TTSetBool(NSString *key, BOOL value);
 FOUNDATION_EXPORT double TTNumber(NSString *key, double fallback);
