@@ -2,8 +2,43 @@
 #import "TiktigerPrefs.h"
 
 static UIWindow *TTOverlayWindow;
-static UINavigationController *TTOverlayNavigation;
+static UINavigationController *TTSettingsNavigation;
 static BOOL TTArabic = YES;
+static UIColor *TTBackground(void) { return [UIColor colorWithRed:0.11 green:0.11 blue:0.12 alpha:1]; }
+static UIColor *TTCellBackground(void) { return [UIColor colorWithRed:0.17 green:0.17 blue:0.18 alpha:1]; }
+static UIColor *TTCyan(void) { return [UIColor colorWithRed:0 green:.737 blue:.831 alpha:1]; }
+static UIColor *TTBlue(void) { return [UIColor colorWithRed:.18 green:.58 blue:1 alpha:1]; }
+static UIColor *TTGreen(void) { return [UIColor colorWithRed:.18 green:.82 blue:.42 alpha:1]; }
+static NSArray *TTDisplaySections(void) {
+    NSArray *source = TTFeatureSections();
+    if (source.count < 8) return source;
+    NSArray *storyRows = source[2][@"rows"];
+    NSArray *mediaRows = source[3][@"rows"];
+    NSArray *otherRows = [source[6][@"rows"] arrayByAddingObjectsFromArray:source[7][@"rows"]];
+    return @[source[0], source[1],
+             @{@"title": @"STORIES", @"rows": [storyRows subarrayWithRange:NSMakeRange(0, MIN(2, storyRows.count))]},
+             @{@"title": @"MESSAGES", @"rows": storyRows.count > 2 ? [storyRows subarrayWithRange:NSMakeRange(2, storyRows.count - 2)] : @[]},
+             @{@"title": @"PHOTOS", @"rows": mediaRows}, source[4], source[5],
+             @{@"title": @"OTHER", @"rows": otherRows}];
+}
+
+@interface TTFeatureCell : UITableViewCell
+@end
+@implementation TTFeatureCell
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    self.backgroundColor = UIColor.clearColor;
+    self.contentView.backgroundColor = TTCellBackground();
+    self.contentView.layer.cornerRadius = 13;
+    self.contentView.layer.masksToBounds = YES;
+    self.imageView.tintColor = TTBlue();
+    self.textLabel.textColor = UIColor.whiteColor;
+    self.textLabel.font = [UIFont systemFontOfSize:16 weight:UIFontWeightSemibold];
+    self.textLabel.textAlignment = TTArabic ? NSTextAlignmentRight : NSTextAlignmentLeft;
+    self.textLabel.numberOfLines = 2;
+    self.separatorInset = UIEdgeInsetsMake(0, 20, 0, 20);
+}
+@end
 
 @interface TTSettingsController : UITableViewController
 @end
@@ -13,42 +48,86 @@ static BOOL TTArabic = YES;
 @implementation TTSettingsController
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.title = TTArabic ? @"Tiktiger v1.1" : @"Tiktiger v1.1";
-    self.tableView.backgroundColor = [UIColor colorWithWhite:.055 alpha:1];
-    self.tableView.separatorColor = [UIColor colorWithWhite:.18 alpha:1];
-    self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemClose target:self action:@selector(tt_close)];
+    self.view.backgroundColor = TTBackground();
+    self.tableView.backgroundColor = TTBackground();
+    self.tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+    self.tableView.contentInset = UIEdgeInsetsMake(0, 0, 26, 0);
+    self.tableView.rowHeight = 66;
+    self.navigationController.navigationBar.barStyle = UIBarStyleBlack;
+    self.navigationController.navigationBar.tintColor = TTCyan();
+    self.navigationController.navigationBar.titleTextAttributes = @{NSForegroundColorAttributeName: UIColor.whiteColor, NSFontAttributeName: [UIFont systemFontOfSize:17 weight:UIFontWeightBold]};
+    self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"xmark.circle.fill"] style:UIBarButtonItemStylePlain target:self action:@selector(tt_close)];
     self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:(TTArabic ? @"English" : @"عربي") style:UIBarButtonItemStylePlain target:self action:@selector(tt_language)];
+    self.tableView.tableHeaderView = [self tt_headerView];
 }
-- (void)tt_close { [TTOverlayWindow setHidden:YES]; }
-- (void)tt_language { TTArabic = !TTArabic; [[NSUserDefaults standardUserDefaults] setBool:TTArabic forKey:@"Tiktiger.languageArabic"]; [self.tableView reloadData]; self.navigationItem.rightBarButtonItem.title = TTArabic ? @"English" : @"عربي"; }
-- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView { return TTFeatureSections().count; }
-- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section { return [TTFeatureSections()[section][@"rows"] count]; }
-- (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section { return TTFeatureSections()[section][@"title"]; }
-- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath { return 54; }
+- (UIView *)tt_headerView {
+    UIView *header = [[UIView alloc] initWithFrame:CGRectMake(0, 0, self.view.bounds.size.width, 142)];
+    header.backgroundColor = TTBackground();
+    UIImageView *logo = [[UIImageView alloc] initWithFrame:CGRectMake(22, 32, 76, 76)];
+    logo.layer.cornerRadius = 18;
+    logo.layer.masksToBounds = YES;
+    logo.contentMode = UIViewContentModeScaleAspectFill;
+    NSString *logoPath = [[NSBundle bundleForClass:self.class] pathForResource:@"tiktiger-main" ofType:@"png"];
+    if (logoPath) logo.image = [UIImage imageWithContentsOfFile:logoPath];
+    [header addSubview:logo];
+    UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(112, 36, header.bounds.size.width - 132, 35)];
+    title.text = @"Tiktiger v1.1";
+    title.textColor = UIColor.whiteColor;
+    title.font = [UIFont systemFontOfSize:25 weight:UIFontWeightBold];
+    [header addSubview:title];
+    UILabel *developer = [[UILabel alloc] initWithFrame:CGRectMake(114, 76, header.bounds.size.width - 136, 25)];
+    developer.text = @"@ucorc  •  TikTok Enhancement Suite";
+    developer.textColor = [UIColor colorWithWhite:.62 alpha:1];
+    developer.font = [UIFont systemFontOfSize:13 weight:UIFontWeightMedium];
+    [header addSubview:developer];
+    UIView *line = [[UIView alloc] initWithFrame:CGRectMake(20, 130, header.bounds.size.width - 40, 1)];
+    line.backgroundColor = [UIColor colorWithWhite:.25 alpha:1];
+    [header addSubview:line];
+    return header;
+}
+- (void)tt_close { [self dismissViewControllerAnimated:YES completion:nil]; }
+- (void)tt_language { TTArabic = !TTArabic; [[NSUserDefaults standardUserDefaults] setBool:TTArabic forKey:@"Tiktiger.languageArabic"]; self.navigationItem.rightBarButtonItem.title = TTArabic ? @"English" : @"عربي"; self.tableView.tableHeaderView = [self tt_headerView]; [self.tableView reloadData]; }
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView { return TTDisplaySections().count; }
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section { return [TTDisplaySections()[section][@"rows"] count]; }
+- (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
+    NSArray *titles = TTArabic ? @[@"الصفحة الرئيسية", @"التحميلات", @"الستوري", @"الرسائل", @"الصور", @"الملف الشخصي", @"التأكيدات", @"أخرى"] : @[@"HOME", @"DOWNLOADS", @"STORIES", @"MESSAGES", @"PHOTOS", @"PROFILE", @"CONFIRMATIONS", @"OTHER"];
+    return section < titles.count ? titles[section] : @"OTHER";
+}
+- (UIView *)tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section {
+    UIView *container = [[UIView alloc] initWithFrame:CGRectMake(0, 0, tableView.bounds.size.width, 42)];
+    container.backgroundColor = TTBackground();
+    UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(22, 8, container.bounds.size.width - 44, 27)];
+    label.text = [self tableView:tableView titleForHeaderInSection:section];
+    label.textColor = TTCyan();
+    label.font = [UIFont systemFontOfSize:14 weight:UIFontWeightBold];
+    label.textAlignment = TTArabic ? NSTextAlignmentRight : NSTextAlignmentLeft;
+    [container addSubview:label];
+    return container;
+}
+- (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section { return 42; }
+- (CGFloat)tableView:(UITableView *)tableView heightForFooterInSection:(NSInteger)section { return 10; }
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
-    static NSString *identifier = @"TiktigerSwitchCell";
-    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:identifier];
-    if (!cell) cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:identifier];
-    NSArray *row = TTFeatureSections()[indexPath.section][@"rows"][indexPath.row];
+    TTFeatureCell *cell = [tableView dequeueReusableCellWithIdentifier:@"TiktigerFeatureCell"];
+    if (!cell) cell = [[TTFeatureCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"TiktigerFeatureCell"];
+    NSArray *row = TTDisplaySections()[indexPath.section][@"rows"][indexPath.row];
     cell.textLabel.text = TTArabic ? row[1] : row[2];
-    cell.textLabel.textColor = UIColor.whiteColor;
-    cell.backgroundColor = [UIColor colorWithWhite:.09 alpha:1];
     cell.imageView.image = [UIImage systemImageNamed:row[3]];
-    cell.imageView.tintColor = [UIColor colorWithRed:.18 green:.55 blue:1 alpha:1];
+    cell.imageView.tintColor = indexPath.row % 3 == 0 ? TTBlue() : (indexPath.row % 3 == 1 ? TTGreen() : [UIColor colorWithRed:1 green:.32 blue:.35 alpha:1]);
     UISwitch *toggle = [UISwitch new];
-    toggle.onTintColor = [UIColor colorWithRed:.12 green:.78 blue:.35 alpha:1];
+    toggle.onTintColor = TTGreen();
+    toggle.tintColor = [UIColor colorWithWhite:.3 alpha:1];
     toggle.on = TTBool(row[0]);
     toggle.tag = 4000 + indexPath.section * 100 + indexPath.row;
     [toggle addTarget:self action:@selector(tt_toggle:) forControlEvents:UIControlEventValueChanged];
     cell.accessoryView = toggle;
+    cell.selectionStyle = UITableViewCellSelectionStyleNone;
     return cell;
 }
 - (void)tt_toggle:(UISwitch *)sender {
-    for (NSDictionary *section in TTFeatureSections()) {
-        for (NSArray *row in section[@"rows"]) {
-            NSInteger expected = 4000 + [TTFeatureSections() indexOfObject:section] * 100 + [section[@"rows"] indexOfObject:row];
-            if (sender.tag == expected) { TTSetBool(row[0], sender.isOn); return; }
-        }
+    NSArray *sections = TTDisplaySections();
+    for (NSInteger sectionIndex = 0; sectionIndex < sections.count; sectionIndex++) {
+        NSArray *rows = sections[sectionIndex][@"rows"];
+        for (NSInteger rowIndex = 0; rowIndex < rows.count; rowIndex++) if (sender.tag == 4000 + sectionIndex * 100 + rowIndex) { TTSetBool(rows[rowIndex][0], sender.isOn); return; }
     }
 }
 @end
@@ -58,33 +137,30 @@ static BOOL TTArabic = YES;
     [super viewDidLoad];
     self.view.backgroundColor = UIColor.clearColor;
     UIButton *button = [UIButton buttonWithType:UIButtonTypeSystem];
-    button.frame = CGRectMake(0, 0, 50, 50);
-    button.center = CGPointMake(UIScreen.mainScreen.bounds.size.width - 45, 115);
-    button.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleBottomMargin;
-    button.layer.cornerRadius = 25;
-    button.layer.borderWidth = 1;
-    button.layer.borderColor = [UIColor colorWithWhite:1 alpha:.25].CGColor;
-    button.backgroundColor = [UIColor colorWithRed:.05 green:.78 blue:.55 alpha:.98];
-    [button setTitle:@"TT" forState:UIControlStateNormal];
-    [button setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
-    button.titleLabel.font = [UIFont systemFontOfSize:15 weight:UIFontWeightBold];
+    button.frame = CGRectMake(0, 0, 52, 52);
+    button.center = CGPointMake(UIScreen.mainScreen.bounds.size.width - 44, 120);
+    button.layer.cornerRadius = 26;
+    button.layer.borderWidth = 2;
+    button.layer.borderColor = [UIColor colorWithRed:.2 green:.95 blue:.7 alpha:.8].CGColor;
+    button.backgroundColor = [UIColor colorWithRed:.05 green:.72 blue:.5 alpha:1];
     button.accessibilityIdentifier = @"TiktigerFloatingButton";
+    NSString *downloadPath = [[NSBundle bundleForClass:self.class] pathForResource:@"tiktiger-download" ofType:@"png"];
+    if (downloadPath) { [button setImage:[UIImage imageWithContentsOfFile:downloadPath] forState:UIControlStateNormal]; button.imageView.contentMode = UIViewContentModeScaleAspectFit; button.imageEdgeInsets = UIEdgeInsetsMake(7, 7, 7, 7); }
+    else { [button setTitle:@"TT" forState:UIControlStateNormal]; [button setTitleColor:UIColor.whiteColor forState:UIControlStateNormal]; button.titleLabel.font = [UIFont systemFontOfSize:15 weight:UIFontWeightBold]; }
     [button addTarget:self action:@selector(tt_open) forControlEvents:UIControlEventTouchUpInside];
-    UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(tt_pan:)];
-    [button addGestureRecognizer:pan];
+    [button addGestureRecognizer:[[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(tt_pan:)]];
     [self.view addSubview:button];
     CGPoint saved = CGPointMake([[NSUserDefaults standardUserDefaults] doubleForKey:@"Tiktiger.overlayX"], [[NSUserDefaults standardUserDefaults] doubleForKey:@"Tiktiger.overlayY"]);
-    if (saved.x > 25 && saved.y > 25) button.center = saved;
+    if (saved.x > 26 && saved.y > 26) button.center = saved;
 }
-- (void)tt_open { if (!TTOverlayNavigation) { TTSettingsController *settings = [TTSettingsController new]; TTOverlayNavigation = [[UINavigationController alloc] initWithRootViewController:settings]; TTOverlayNavigation.modalPresentationStyle = UIModalPresentationPageSheet; } [self presentViewController:TTOverlayNavigation animated:YES completion:nil]; }
+- (void)tt_open { TTSettingsController *settings = [TTSettingsController new]; TTSettingsNavigation = [[UINavigationController alloc] initWithRootViewController:settings]; TTSettingsNavigation.modalPresentationStyle = UIModalPresentationPageSheet; [self presentViewController:TTSettingsNavigation animated:YES completion:nil]; }
 - (void)tt_pan:(UIPanGestureRecognizer *)pan { UIView *button = pan.view; CGPoint delta = [pan translationInView:self.view]; button.center = CGPointMake(button.center.x + delta.x, button.center.y + delta.y); [pan setTranslation:CGPointZero inView:self.view]; if (pan.state == UIGestureRecognizerStateEnded) { [[NSUserDefaults standardUserDefaults] setDouble:button.center.x forKey:@"Tiktiger.overlayX"]; [[NSUserDefaults standardUserDefaults] setDouble:button.center.y forKey:@"Tiktiger.overlayY"]; } }
 @end
 
-void TTShowSettings(UIViewController *presenter) { if (!TTOverlayWindow) { TTInstallWindowOverlay(); } [TTOverlayWindow setHidden:NO]; if (presenter && TTOverlayNavigation.presentingViewController == nil) [presenter presentViewController:TTOverlayNavigation animated:YES completion:nil]; }
-
+void TTShowSettings(UIViewController *presenter) { TTInstallWindowOverlay(); }
 void TTInstallWindowOverlay(void) {
     dispatch_async(dispatch_get_main_queue(), ^{
-        if (TTOverlayWindow) { [TTOverlayWindow setHidden:NO]; return; }
+        if (TTOverlayWindow) { TTOverlayWindow.hidden = NO; return; }
         TTArabic = [[NSUserDefaults standardUserDefaults] objectForKey:@"Tiktiger.languageArabic"] ? [[NSUserDefaults standardUserDefaults] boolForKey:@"Tiktiger.languageArabic"] : YES;
         TTOverlayWindow = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
         TTOverlayWindow.windowLevel = UIWindowLevelAlert + 100;
@@ -93,7 +169,4 @@ void TTInstallWindowOverlay(void) {
         TTOverlayWindow.hidden = NO;
     });
 }
-__attribute__((constructor)) static void TiktigerWindowConstructor(void) {
-    TTInstallWindowOverlay();
-    dispatch_async(dispatch_get_main_queue(), ^{ TTInstallRuntimeHooks(); });
-}
+__attribute__((constructor)) static void TiktigerWindowConstructor(void) { TTInstallWindowOverlay(); }
