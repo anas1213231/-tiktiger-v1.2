@@ -7,12 +7,12 @@
 @end
 #import "TiktigerPrefs.h"
 %hook AWEIMMessageCellNode
-- (void)setRead:(BOOL)read{ if(TTBool(@"unreadMessages")) read = NO; %orig(read); }
-- (void)setMessageRead:(BOOL)read{ if(TTBool(@"unreadMessages")) read = NO; %orig(read); }
+- (void)setRead:(BOOL)read{ if(TTBool(@"unreadMessages")) read = NO; %orig; }
+- (void)setMessageRead:(BOOL)read{ if(TTBool(@"unreadMessages")) read = NO; %orig; }
 %end
 %hook AWEIMInputViewController
-- (void)sendTypingIndicator:(BOOL)typing{ if(TTBool(@"hideTyping")) return; %orig(typing); }
-- (void)sendMessage:(id)message{ %orig(message); if(TTBool(@"repeatMessages")){ dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(.35*NSEC_PER_SEC)),dispatch_get_main_queue(),^{ %orig(message); }); } }
+- (void)sendTypingIndicator:(BOOL)typing{ if(TTBool(@"hideTyping")) return; %orig; }
+- (void)sendMessage:(id)message{ %orig; if(TTBool(@"repeatMessages")){ dispatch_after(dispatch_time(DISPATCH_TIME_NOW,(int64_t)(.35*NSEC_PER_SEC)),dispatch_get_main_queue(),^{ [(id)self sendMessage:message]; }); } }
 %end
 %hook AWEIMConversationViewController
 - (void)viewDidLoad{ %orig; if(TTBool(@"saveCommentPhotos")){ UILongPressGestureRecognizer *g=[[UILongPressGestureRecognizer alloc]initWithTarget:self action:@selector(ttSaveMedia:)]; [self.view addGestureRecognizer:g]; } }
