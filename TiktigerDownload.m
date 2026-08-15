@@ -1,6 +1,6 @@
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
-#import <substrate.h>
+#import "substrate.h"
 #import "TiktigerPrefs.h"
 
 static void (*orig_storyViewDidAppear)(id, SEL, BOOL);
