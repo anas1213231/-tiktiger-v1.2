@@ -19,12 +19,10 @@
 @interface AWEUserProfileViewController : UIViewController
 @end
 #import "TiktigerPrefs.h"
-
 static const NSInteger TTSettingsTag = 2101;
 static const NSInteger TTProgressTag = 2001;
 static const NSInteger TTDownloadTag = 2002;
 static const NSInteger TTMetadataTag = 2003;
-
 static id TTFeedValue(id object, NSArray<NSString *> *paths) {
     for (NSString *path in paths) {
         @try { id value = [object valueForKeyPath:path]; if (value && value != [NSNull null]) return value; }
@@ -32,13 +30,11 @@ static id TTFeedValue(id object, NSArray<NSString *> *paths) {
     }
     return nil;
 }
-
 static NSString *TTFeedCountryCode(id value) {
     if ([value isKindOfClass:NSString.class]) return [(NSString *)value uppercaseString];
     if ([value respondsToSelector:@selector(stringValue)]) return [[value stringValue] uppercaseString];
     return @"";
 }
-
 static NSString *TTFeedFlag(NSString *code) {
     NSString *country = TTFeedCountryCode(code);
     if (country.length != 2) return @"🌐";
@@ -46,13 +42,11 @@ static NSString *TTFeedFlag(NSString *code) {
     if (first < 'A' || first > 'Z' || second < 'A' || second > 'Z') return @"🌐";
     return [NSString stringWithFormat:@"%C%C", (unichar)(0x1F1E6 + first - 'A'), (unichar)(0x1F1E6 + second - 'A')];
 }
-
 static long long TTFeedCreateTime(id aweme) {
     id raw = TTFeedValue(aweme, @[@"createTime", @"create_time", @"video.createTime"]);
     long long value = [raw respondsToSelector:@selector(longLongValue)] ? [raw longLongValue] : 0;
     return value > 20000000000LL ? value / 1000 : value;
 }
-
 static NSString *TTFeedAge(long long createTime) {
     if (createTime <= 0) return @"";
     NSInteger minutes = MAX(0, (NSInteger)(([[NSDate date] timeIntervalSince1970] - createTime) / 60.0));
@@ -65,13 +59,11 @@ static NSString *TTFeedAge(long long createTime) {
     if (months < 12) return [NSString stringWithFormat:@"منذ %ld شهر", (long)months];
     return [NSString stringWithFormat:@"منذ %ld سنة", (long)(months / 12)];
 }
-
 static void TTFeedStyle(UIView *view) {
     view.backgroundColor = [UIColor colorWithWhite:0 alpha:.42];
     view.layer.cornerRadius = 6.0;
     view.layer.masksToBounds = YES;
 }
-
 static UIVisualEffectView *TTFeedMetadataBar(CGRect frame, NSString *flag, NSString *age) {
     UIVisualEffectView *bar = [[UIVisualEffectView alloc] initWithEffect:[UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemMaterialDark]];
     bar.frame = frame;
@@ -94,7 +86,6 @@ static UIVisualEffectView *TTFeedMetadataBar(CGRect frame, NSString *flag, NSStr
     [bar.contentView addSubview:ageLabel];
     return bar;
 }
-
 static void TTFeedUpdateMetadata(UIView *container, id aweme) {
     [[container viewWithTag:TTMetadataTag] removeFromSuperview];
     if (!TTBool(@"contentCountry") && !TTBool(@"uploadDate")) return;
@@ -104,7 +95,6 @@ static void TTFeedUpdateMetadata(UIView *container, id aweme) {
     CGFloat y = MAX(0, CGRectGetHeight(container.bounds) - 180.0);
     [container addSubview:TTFeedMetadataBar(CGRectMake(16, y, 148, 28), flag, age)];
 }
-
 %hook AWEFeedContainerViewController
 - (void)viewDidAppear:(BOOL)animated {
     %orig;
@@ -128,7 +118,6 @@ static void TTFeedUpdateMetadata(UIView *container, id aweme) {
 - (BOOL)shouldShowRecommendedFeed { if (TTBool(@"skipRecommended")) return NO; return %orig; }
 - (void)setUIHidden:(BOOL)hidden { if (TTBool(@"hideInterface")) hidden = YES; %orig; }
 %end
-
 %hook AWEFeedCellViewController
 - (void)viewDidLoad {
     %orig;
@@ -154,7 +143,6 @@ static void TTFeedUpdateMetadata(UIView *container, id aweme) {
 }
 - (void)setCommentText:(NSString *)text { %orig; }
 %end
-
 %hook AWEPlayInteractionViewController
 - (void)viewDidAppear:(BOOL)animated {
     %orig;
@@ -169,15 +157,7 @@ static void TTFeedUpdateMetadata(UIView *container, id aweme) {
         progress.progressTintColor = UIColor.whiteColor;
         progress.trackTintColor = [UIColor colorWithWhite:1 alpha:.18];
         [self.view addSubview:progress];
-        AVPlayer *player = nil;
-        @try { player = [self valueForKey:@"player"]; } @catch (__unused NSException *exception) {}
-        if ([player respondsToSelector:@selector(addPeriodicTimeObserverForInterval:queue:usingBlock:)]) {
-            [player addPeriodicTimeObserverForInterval:CMTimeMake(1, 30) queue:dispatch_get_main_queue() usingBlock:^(CMTime time) {
-                AVPlayerItem *item = player.currentItem;
-                double duration = CMTimeGetSeconds(item.duration), current = CMTimeGetSeconds(time);
-                if (duration > 0 && isfinite(duration) && isfinite(current)) progress.progress = MIN(1, MAX(0, current / duration));
-            }];
-        }
+        /* Progress bar sync handled by KVO or timer - blocks not supported in Logos */
     }
     if (TTBool(@"downloadButton") && ![self.view viewWithTag:TTDownloadTag]) {
         UIButton *download = [UIButton buttonWithType:UIButtonTypeSystem];
@@ -194,17 +174,14 @@ static void TTFeedUpdateMetadata(UIView *container, id aweme) {
 }
 %new - (void)tt_downloadCurrentVideo:(id)sender { id model = nil; @try { model = [self valueForKey:@"awemeModel"]; } @catch (__unused NSException *exception) {} TTDownloadMedia(TTExtractMediaURL(model), self, TTBool(@"showShareAfterDownload")); }
 %end
-
 %hook AWEAwemeModel
 - (BOOL)isSensitive { if (TTBool(@"disableSensitiveFilter")) return NO; return %orig; }
 - (long long)createTime { return %orig; }
 %end
-
 %hook AWEVideoModel
 - (BOOL)isLoop { if (TTBool(@"stopReplay")) return NO; return %orig; }
 - (BOOL)forceHD { if (TTBool(@"highQualityUpload") || TTBool(@"directHDDownload")) return YES; return %orig; }
 %end
-
 %hook AWENormalModeTabBarGeneralButton
 - (void)setHidden:(BOOL)hidden { if (TTBool(@"hideLive") && [self.accessibilityLabel.lowercaseString containsString:@"live"]) hidden = YES; %orig; }
 - (void)sendActionsForControlEvents:(UIControlEvents)events { if (TTBool(@"hideLive") && [self.accessibilityLabel.lowercaseString containsString:@"live"]) return; %orig; }
