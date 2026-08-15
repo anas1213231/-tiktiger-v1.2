@@ -112,7 +112,8 @@ static void TTFeedUpdateMetadata(UIView *container, id aweme) {
         settings.transform = CGAffineTransformIdentity;
     }
 }
-%new - (void)tt_openTiktigerSettings:(id)sender { TTShowSettings((UIViewController *)self); }
+%new
+- (void)tt_openTiktigerSettings:(id)sender { TTShowSettings((UIViewController *)self); }
 - (void)pullToRefresh { if (TTBool(@"disableRefresh")) return; %orig; }
 - (void)refresh { if (TTBool(@"disableRefresh")) return; %orig; }
 - (BOOL)shouldShowRecommendedFeed { if (TTBool(@"skipRecommended")) return NO; return %orig; }
@@ -172,7 +173,8 @@ static void TTFeedUpdateMetadata(UIView *container, id aweme) {
         [self.view addSubview:download];
     }
 }
-%new - (void)tt_downloadCurrentVideo:(id)sender { id model = nil; @try { model = [self valueForKey:@"awemeModel"]; } @catch (__unused NSException *exception) {} TTDownloadMedia(TTExtractMediaURL(model), self, TTBool(@"showShareAfterDownload")); }
+%new
+- (void)tt_downloadCurrentVideo:(id)sender { id model = nil; @try { model = [self valueForKey:@"awemeModel"]; } @catch (__unused NSException *exception) {} TTDownloadMedia(TTExtractMediaURL(model), (UIViewController *)self, TTBool(@"showShareAfterDownload")); }
 %end
 %hook AWEAwemeModel
 - (BOOL)isSensitive { if (TTBool(@"disableSensitiveFilter")) return NO; return %orig; }
