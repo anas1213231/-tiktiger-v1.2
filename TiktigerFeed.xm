@@ -119,7 +119,7 @@ static void TTFeedUpdateMetadata(UIView *container, id aweme) {
         settings.titleLabel.font = [UIFont systemFontOfSize:23 weight:UIFontWeightSemibold];
         [settings addTarget:self action:@selector(tt_openTiktigerSettings:) forControlEvents:UIControlEventTouchUpInside];
         [self.view addSubview:settings];
-        [UIView animateWithDuration:.38 delay:0 usingSpringWithDamping:.76 initialSpringVelocity:.35 options:0 animations:^{ settings.transform = CGAffineTransformMakeScale(1.08, 1.08); } completion:nil];
+        settings.transform = CGAffineTransformIdentity;
     }
 }
 %new - (void)tt_openTiktigerSettings:(id)sender { TTShowSettings((UIViewController *)self); }
