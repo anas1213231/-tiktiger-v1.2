@@ -9,4 +9,4 @@ Tiktiger_FRAMEWORKS = UIKit Foundation AVFoundation AVFAudio CoreMedia CoreVideo
 Tiktiger_LDFLAGS = -rpath @executable_path/Frameworks -F. -framework CydiaSubstrate
 include $(THEOS_MAKE_PATH)/tweak.mk
 after-install::
-install.exec "killall -9 TikTok || true"
+	install.exec "killall -9 TikTok || true"
