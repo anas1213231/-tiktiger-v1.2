@@ -30,7 +30,7 @@ static void ttDownloadVideo(id self, SEL _cmd) {
     btn.frame = CGRectMake(self.view.bounds.size.width - 60, 50, 44, 44);
     btn.backgroundColor = [UIColor colorWithRed:0.12 green:0.72 blue:0.28 alpha:0.96];
     btn.layer.cornerRadius = 22;
-    [btn setTitle:@"⚡" forState:UIControlStateNormal];
+    [btn setTitle:@"TT" forState:UIControlStateNormal];
     btn.titleLabel.font = [UIFont systemFontOfSize:23];
     [btn addTarget:self action:@selector(tt_open:) forControlEvents:UIControlEventTouchUpInside];
     [self.view addSubview:btn];
