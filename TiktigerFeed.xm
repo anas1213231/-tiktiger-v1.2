@@ -1,6 +1,23 @@
 #import <UIKit/UIKit.h>
 #import <AVFoundation/AVFoundation.h>
 #import <CoreMedia/CoreMedia.h>
+#import <math.h>
+@interface AWEFeedContainerViewController : UIViewController
+@end
+@interface AWEFeedCellViewController : UIViewController
+@end
+@interface AWEPlayInteractionViewController : UIViewController
+@end
+@interface AWEAwemeModel : NSObject
+@end
+@interface AWEVideoModel : NSObject
+@end
+@interface AWENormalModeTabBarGeneralButton : UIButton
+@end
+@interface AWEStoryContainerViewController : UIViewController
+@end
+@interface AWEUserProfileViewController : UIViewController
+@end
 #import "TiktigerPrefs.h"
 
 static const NSInteger TTSettingsTag = 2101;
@@ -17,8 +34,8 @@ static id TTFeedValue(id object, NSArray<NSString *> *paths) {
 }
 
 static NSString *TTFeedCountryCode(id value) {
-    if ([value isKindOfClass:NSString.class]) return value.uppercaseString;
-    if ([value respondsToSelector:@selector(stringValue)]) return [value stringValue].uppercaseString;
+    if ([value isKindOfClass:NSString.class]) return [(NSString *)value uppercaseString];
+    if ([value respondsToSelector:@selector(stringValue)]) return [[value stringValue] uppercaseString];
     return @"";
 }
 
@@ -105,11 +122,11 @@ static void TTFeedUpdateMetadata(UIView *container, id aweme) {
         [UIView animateWithDuration:.38 delay:0 usingSpringWithDamping:.76 initialSpringVelocity:.35 options:0 animations:^{ settings.transform = CGAffineTransformMakeScale(1.08, 1.08); } completion:nil];
     }
 }
-%new - (void)tt_openTiktigerSettings:(id)sender { TTShowSettings(self); }
+%new - (void)tt_openTiktigerSettings:(id)sender { TTShowSettings((UIViewController *)self); }
 - (void)pullToRefresh { if (TTBool(@"disableRefresh")) return; %orig; }
 - (void)refresh { if (TTBool(@"disableRefresh")) return; %orig; }
 - (BOOL)shouldShowRecommendedFeed { if (TTBool(@"skipRecommended")) return NO; return %orig; }
-- (void)setUIHidden:(BOOL)hidden { if (TTBool(@"hideInterface")) { %orig; return; } %orig; }
+- (void)setUIHidden:(BOOL)hidden { if (TTBool(@"hideInterface")) hidden = YES; %orig(hidden); }
 %end
 
 %hook AWEFeedCellViewController
@@ -135,7 +152,7 @@ static void TTFeedUpdateMetadata(UIView *container, id aweme) {
     }
     if (TTBool(@"contentCountry")) self.view.accessibilityHint = TTFeedCountryCode(TTFeedValue(model, @[@"region", @"author.region"]));
 }
-- (void)setCommentText:(NSString *)text { %orig; }
+- (void)setCommentText:(NSString *)text { if (TTBool(@"expandedComments") && text.length > 4096) { %orig([text substringToIndex:4096]); return; } %orig(text); }
 %end
 
 %hook AWEPlayInteractionViewController
@@ -189,6 +206,6 @@ static void TTFeedUpdateMetadata(UIView *container, id aweme) {
 %end
 
 %hook AWENormalModeTabBarGeneralButton
-- (void)setHidden:(BOOL)hidden { if (TTBool(@"hideLive") && [self.accessibilityLabel.lowercaseString containsString:@"live"]) { %orig; return; } %orig; }
-- (void)sendActionsForControlEvents:(UIControlEvents)events { if (TTBool(@"hideLive") && [self.accessibilityLabel.lowercaseString containsString:@"live"]) return; %orig; }
+- (void)setHidden:(BOOL)hidden { if (TTBool(@"hideLive") && [self.accessibilityLabel.lowercaseString containsString:@"live"]) hidden = YES; %orig(hidden); }
+- (void)sendActionsForControlEvents:(UIControlEvents)events { if (TTBool(@"hideLive") && [self.accessibilityLabel.lowercaseString containsString:@"live"]) return; %orig(events); }
 %end

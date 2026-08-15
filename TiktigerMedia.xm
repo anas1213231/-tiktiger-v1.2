@@ -1,6 +1,16 @@
 #import <UIKit/UIKit.h>
 #import <AVFoundation/AVFoundation.h>
 #import <CoreMedia/CoreMedia.h>
+@interface AWECommentListViewController : UIViewController
+@end
+@interface AWEPhotoDetailViewController : UIViewController
+@end
+@interface AVCaptureSession : NSObject
+@end
+@interface AVCaptureVideoDataOutput : NSObject
+@end
+@interface AVAudioSession : NSObject
+@end
 #import "TiktigerPrefs.h"
 %hook AWEPhotoDetailViewController
 - (void)viewDidAppear:(BOOL)animated{ %orig; if(TTBool(@"photosToVideo")&&! [self.view viewWithTag:3601]){ UIButton *b=[UIButton buttonWithType:UIButtonTypeSystem]; b.tag=3601; b.frame=CGRectMake(self.view.bounds.size.width-70,self.view.bounds.size.height-150,54,54); b.autoresizingMask=UIViewAutoresizingFlexibleLeftMargin|UIViewAutoresizingFlexibleTopMargin; [b setImage:[UIImage systemImageNamed:@"film"] forState:UIControlStateNormal]; [b addTarget:self action:@selector(ttExportSlideshow:) forControlEvents:UIControlEventTouchUpInside]; [self.view addSubview:b]; } }
