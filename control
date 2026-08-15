@@ -1,0 +1,10 @@
+Package: com.ucorc.tiktiger
+Name: Tiktiger
+Version: 1.1
+Architecture: iphoneos-arm
+Description: Tiktiger — privacy, media and UI enhancements for TikTok
+Maintainer: @ucorc (Telegram)
+Author: @ucorc
+Section: Tweaks
+Depends: mobilesubstrate
+Homepage: https://t.me/ucorc

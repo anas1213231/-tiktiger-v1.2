@@ -1,0 +1,19 @@
+name: Build Tiktiger
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Theos
+        run: |
+          git clone --depth 1 https://github.com/theos/theos.git $THEOS
+          brew install ldid
+      - name: Build arm64 and arm64e
+        run: make package FINALPACKAGE=1 THEOS=$THEOS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Tiktiger-v1.1
+          path: packages/*.deb
