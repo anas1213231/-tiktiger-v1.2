@@ -5,15 +5,20 @@ on:
 jobs:
   build:
     runs-on: macos-14
+    env:
+      THEOS: /tmp/theos
     steps:
       - uses: actions/checkout@v4
-      - name: Install Theos
+      - name: Install Theos and dependencies
         run: |
+          brew install ldid dpkg
           git clone --depth 1 https://github.com/theos/theos.git $THEOS
-          brew install ldid
-      - name: Build arm64 and arm64e
-        run: make package FINALPACKAGE=1 THEOS=$THEOS
+          git clone --depth 1 https://github.com/theos/sdks.git $THEOS/sdks
+      - name: Build package
+        run: |
+          export THEOS=/tmp/theos
+          make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
       - uses: actions/upload-artifact@v4
         with:
-          name: Tiktiger-v1.1
+          name: Tiktiger-v1.1-deb
           path: packages/*.deb
