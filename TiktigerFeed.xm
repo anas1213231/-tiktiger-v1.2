@@ -9,15 +9,8 @@
 @interface AWEVideoModel : NSObject @end
 @interface AWENormalModeTabBarGeneralButton : UIButton @end
 
-static void ttOpenSettings(id self, SEL _cmd) {
-    TTShowSettings((UIViewController *)self);
-}
-
-static void ttDownloadVideo(id self, SEL _cmd) {
-    id model = nil;
-    @try { model = [self valueForKey:@"awemeModel"]; } @catch (NSException *e) {}
-    TTDownloadMedia(TTExtractMediaURL(model), (UIViewController *)self, TTBool(@"showShareAfterDownload"));
-}
+extern void ttOpenSettings(id self, SEL _cmd);
+extern void ttDownloadVideo(id self, SEL _cmd);
 
 %hook AWEFeedContainerViewController
 - (void)viewDidAppear:(BOOL)animated {
