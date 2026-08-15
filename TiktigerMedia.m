@@ -7,7 +7,7 @@
 static id (*orig_captureOutput)(id, SEL);
 static id new_captureOutput(id self, SEL _cmd) {
     if (TTBool(@"fakeCamera")) {
-        NSString *path = TTString(@"fakeCameraPath");
+        NSString *path = TTString(@"fakeCameraPath", @"");
         if (path) {
             UIImage *img = [UIImage imageWithContentsOfFile:path];
             if (img) return (__bridge id)(img.CGImage);
