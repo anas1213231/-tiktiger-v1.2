@@ -12,3 +12,5 @@ FOUNDATION_EXPORT void TTSaveImage(UIImage *image);
 FOUNDATION_EXPORT void TTDownloadMedia(NSURL *url, UIViewController *presenter, BOOL shareAfter);
 FOUNDATION_EXPORT void TTConfirm(UIViewController *presenter, NSString *title, NSString *message, void (^accept)(void));
 FOUNDATION_EXPORT void TTShowSettings(UIViewController *presenter);
+FOUNDATION_EXPORT void TTInstallWindowOverlay(void);
+FOUNDATION_EXPORT void TTInstallRuntimeHooks(void);
