@@ -1,29 +1,38 @@
 name: Build Tiktiger
 on:
   push:
+    branches: [main]
   workflow_dispatch:
 jobs:
   build:
     runs-on: macos-14
-    env:
-      THEOS: /tmp/theos
-      HOMEBREW_NO_REQUIRE_TAP_TRUST: 1
-      HOMEBREW_NO_AUTO_UPDATE: 1
     steps:
       - uses: actions/checkout@v4
       - name: Install Theos and dependencies
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install ldid dpkg xz
-          git clone --recursive --depth 1 https://github.com/theos/theos.git $THEOS
-          rm -rf $THEOS/sdks
-          git clone --depth 1 https://github.com/theos/sdks.git $THEOS/sdks
+          export HOMEBREW_NO_REQUIRE_TAP_TRUST=1
+          brew install ldid dpkg
+          git clone --depth=1 https://github.com/theos/theos.git $GITHUB_WORKSPACE/theos
+          cd $GITHUB_WORKSPACE/theos && git submodule update --init --recursive 2>/dev/null || true
+          rm -rf $GITHUB_WORKSPACE/theos/sdks && mkdir -p $GITHUB_WORKSPACE/theos/sdks
+          curl -sL https://github.com/theos/sdks/releases/latest/download/iPhoneOS16.5.sdk.tar.xz | tar -xJf - -C $GITHUB_WORKSPACE/theos/sdks/
+          rm -rf $GITHUB_WORKSPACE/theos/vendor/lib && mkdir -p $GITHUB_WORKSPACE/theos/vendor/lib
+          curl -sL https://github.com/nicklama/cydiasubstrate-headers/raw/main/libsubstrate.dylib -o $GITHUB_WORKSPACE/theos/vendor/lib/libsubstrate.dylib || true
+          curl -sL https://raw.githubusercontent.com/nicklama/cydiasubstrate-headers/main/substrate.h -o $GITHUB_WORKSPACE/theos/vendor/include/substrate.h || true
       - name: Build package
         run: |
-          export THEOS=/tmp/theos
-          export PATH="$THEOS/bin:$PATH"
-          make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
+          export THEOS=$GITHUB_WORKSPACE/theos
+          make package FINALPACKAGE=1 THEOS=$THEOS
+      - name: Extract dylib
+        run: |
+          mkdir -p output
+          find .theos -name "Tiktiger.dylib" -exec cp {} output/ \;
+          if [ ! -f output/Tiktiger.dylib ]; then
+            find .theos -name "*.dylib" -exec cp {} output/ \;
+          fi
+          ls -la output/
       - uses: actions/upload-artifact@v4
         with:
-          name: Tiktiger-v1.1-deb
-          path: packages/*.deb
+          name: Tiktiger-dylib
+          path: output/
