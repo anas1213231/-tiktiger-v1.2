@@ -68,7 +68,9 @@ jobs:
           otool -L output/Tiktiger.dylib | tee BuildLogs/otool-L.txt
           shasum -a 256 output/Tiktiger.dylib | tee BuildLogs/sha256.txt
           test "$(file output/Tiktiger.dylib | grep -c 'Mach-O')" -eq 1
-          find .theos -type f -name '*.deb' -exec cp {} output/ \; || true
+          if compgen -G 'packages/*.deb' > /dev/null; then
+            cp packages/*.deb output/
+          fi
           ls -la output/
 
       - name: Upload dylib, package, and build logs
