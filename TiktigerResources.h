@@ -13,3 +13,17 @@ static inline UIImage *TTImageFromB64(NSString *b64) { return [UIImage imageWith
 #define TTMainLogo() TTImageFromB64(kTiktigerMainLogoB64)
 #define TTDownloadIcon() TTImageFromB64(kTiktigerDownloadIconB64)
 #define TTLanguageIcon() TTImageFromB64(kTiktigerLanguageIconB64)
+
+// Bundle-backed assets take precedence over legacy embedded fallbacks.
+static inline UIImage *TTBundleImage(NSString *name, NSString *type) {
+    Class owner = NSClassFromString(@"TTSettingsController");
+    NSBundle *bundle = owner ? [NSBundle bundleForClass:owner] : NSBundle.mainBundle;
+    NSString *path = [bundle pathForResource:name ofType:type];
+    if (!path) path = [[NSBundle mainBundle] pathForResource:name ofType:type];
+    return path.length ? [UIImage imageWithContentsOfFile:path] : nil;
+}
+#undef TTMainLogo
+#define TTMainLogo() (TTBundleImage(@"tiktiger-main", @"png") ?: TTImageFromB64(kTiktigerMainLogoB64))
+#undef TTDownloadIcon
+#define TTDownloadIcon() (TTBundleImage(@"tiktiger-download", @"png") ?: TTImageFromB64(kTiktigerDownloadIconB64))
+static inline UIImage *TTDeveloperCover(void) { return TTBundleImage(@"tiktiger-developer-cover", @"jpg"); }

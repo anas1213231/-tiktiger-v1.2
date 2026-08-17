@@ -64,9 +64,21 @@ static NSArray *TTDisplaySections(void) {
 }
 - (UIView *)tt_headerView {
     CGFloat width = MAX(self.view.bounds.size.width, UIScreen.mainScreen.bounds.size.width);
-    UIView *header = [[UIView alloc] initWithFrame:CGRectMake(0, 0, width, 150)];
+    UIView *header = [[UIView alloc] initWithFrame:CGRectMake(0, 0, width, 190)];
     header.backgroundColor = TTBackground();
-    UIImageView *logo = [[UIImageView alloc] initWithFrame:CGRectMake((width - 80) / 2.0, 8, 80, 80)];
+    UIImage *coverImage = TTDeveloperCover();
+    if (coverImage) {
+        UIImageView *cover = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, width, 116)];
+        cover.image = coverImage;
+        cover.contentMode = UIViewContentModeScaleAspectFill;
+        cover.clipsToBounds = YES;
+        cover.alpha = 0.48;
+        [header addSubview:cover];
+        UIView *shade = [[UIView alloc] initWithFrame:cover.bounds];
+        shade.backgroundColor = [UIColor colorWithWhite:0 alpha:0.42];
+        [cover addSubview:shade];
+    }
+    UIImageView *logo = [[UIImageView alloc] initWithFrame:CGRectMake((width - 80) / 2.0, 18, 80, 80)];
     logo.layer.cornerRadius = 12;
     logo.layer.masksToBounds = YES;
     logo.contentMode = UIViewContentModeScaleAspectFit;
@@ -76,13 +88,13 @@ static NSArray *TTDisplaySections(void) {
         if (logoPath) logo.image = [UIImage imageWithContentsOfFile:logoPath];
     }
     [header addSubview:logo];
-    UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(16, 90, width - 32, 30)];
+    UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(16, 104, width - 32, 30)];
     title.text = @"Tiktiger v1.1";
     title.textAlignment = NSTextAlignmentCenter;
     title.textColor = UIColor.whiteColor;
     title.font = [UIFont systemFontOfSize:22 weight:UIFontWeightBold];
     [header addSubview:title];
-    UILabel *developer = [[UILabel alloc] initWithFrame:CGRectMake(16, 121, width - 32, 20)];
+    UILabel *developer = [[UILabel alloc] initWithFrame:CGRectMake(16, 138, width - 32, 20)];
     developer.text = @"@ucorc  •  TikTok 45.3";
     developer.textAlignment = NSTextAlignmentCenter;
     developer.textColor = [UIColor colorWithWhite:.62 alpha:1];

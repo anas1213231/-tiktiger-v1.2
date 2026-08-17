@@ -6,6 +6,8 @@ hooks = (root / 'TiktigerHooks.m').read_text(encoding='utf-8')
 prefs = (root / 'TiktigerPrefs.m').read_text(encoding='utf-8')
 workflow = (root / '.github/workflows/build.yml').read_text(encoding='utf-8')
 makefile = (root / 'Makefile').read_text(encoding='utf-8')
+window = (root / 'TiktigerWindow.m').read_text(encoding='utf-8')
+resources = (root / 'TiktigerResources.h').read_text(encoding='utf-8')
 errors = []
 checks = {
     'Anonymous Profile Visits': ('anonymousProfiles', 'TTKProfileViewsVisitor', 'p_shouldReportProfileView'),
@@ -27,6 +29,13 @@ for name in ('TTOriginalTypingControllerBool', 'TTOriginalTypingControllerStatus
     if hooks.count(name) < 2: errors.append(f'Original pointer not fully wired: {name}')
 if 'http://' in hooks or 'https://' in hooks or 'NSURLSession' in hooks:
     errors.append('Privacy hooks unexpectedly contain network code')
+for asset in ('assets/tiktiger-main.png', 'assets/tiktiger-download.png', 'assets/tiktiger-developer-cover.jpg'):
+    if not (root / asset).exists(): errors.append(f'Missing asset: {asset}')
+    if asset not in makefile: errors.append(f'Asset not listed in Makefile: {asset}')
+if 'TTDeveloperCover' not in resources or 'TTDeveloperCover' not in window:
+    errors.append('Developer cover is not connected to Resources and Settings UI')
+if 'TTMainLogo()' not in window or 'TTDownloadIcon()' not in window:
+    errors.append('Main/download UI asset helpers are not used')
 report = ['# Previous repo privacy merge verification', '', f'Errors: {len(errors)}', '']
 report += ['- None'] if not errors else [f'- {e}' for e in errors]
 (root / 'docs/PRIVACY_MERGE_VERIFICATION.md').write_text('\n'.join(report) + '\n', encoding='utf-8')
