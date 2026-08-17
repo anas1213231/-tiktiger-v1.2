@@ -21,7 +21,20 @@ Tiktiger هو مشروع Theos لتطبيق TikTok، من إعداد **@ucorc (T
 make package FINALPACKAGE=1
 ```
 
-يدعم `Makefile` المعماريتين `arm64` و`arm64e`، ويحتوي `.github/workflows/build.yml` على مسار بناء macOS ورفع حزمة deb كـartifact.
+يدعم `Makefile` المعماريتين `arm64` و`arm64e`. يقوم `.github/workflows/build.yml` بالبناء على macOS، ثم يتحقق من `Tiktiger.dylib` باستخدام `file` و`otool -L` وSHA-256، ويرفع الـdylib والحزمة deb وسجلات البناء كـartifact باسم `Tiktiger-dylib-<commit>`.
+
+## ميزات الخصوصية المضافة
+
+تمت إضافة أربع ميزات مستقلة داخل مفاتيح التفضيلات الحالية، مع الحفاظ على التوافق مع Settings القديم:
+
+| المفتاح | الميزة | مسار hook |
+|---|---|---|
+| `anonymousProfiles` | Anonymous Profile Visits | `TTKProfileViewsVisitor` عند توفر selectors المناسبة |
+| `unseenStories` | Keep Story Unseen | `TTKStoryManager markStoryReaded:` ومرشح `TTKStoryMarkReadService markAsRead:` |
+| `unreadMessages` | Keep Messages Unseen | مسارات `AWEIMMessageReadComponent` الخاصة بمزامنة إيصال القراءة |
+| `hideTyping` | Hide Typing | مرشحات `sendTyping` و`sendTypingStatus:` عند توفرها |
+
+كل Hook يستخدم `TTInstallCheckedHook` الذي يفحص وجود class وselector قبل تسجيله. إذا لم يتوافق إصدار TikTok مع اسم selector، يتم تخطي Hook المحدد فقط وتسجيل ذلك في Console.
 
 ## ملاحظة توافق لازمة
 

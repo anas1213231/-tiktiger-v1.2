@@ -1,47 +1,83 @@
-name: Build Tiktiger
+name: Build Tiktiger dylib
+
 on:
   push:
     branches: [main]
   workflow_dispatch:
+
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Install Theos and dependencies
+        shell: bash
         run: |
+          set -euo pipefail
           brew untap aws/tap 2>/dev/null || true
           export HOMEBREW_NO_REQUIRE_TAP_TRUST=1
           brew install ldid dpkg
-          git clone --depth=1 https://github.com/theos/theos.git $GITHUB_WORKSPACE/theos
-          cd $GITHUB_WORKSPACE/theos && git submodule update --init --recursive 2>/dev/null || true
-          rm -rf $GITHUB_WORKSPACE/theos/sdks && mkdir -p $GITHUB_WORKSPACE/theos/sdks
-          curl -sL https://github.com/theos/sdks/releases/latest/download/iPhoneOS16.5.sdk.tar.xz | tar -xJf - -C $GITHUB_WORKSPACE/theos/sdks/
-          mkdir -p $GITHUB_WORKSPACE/theos/vendor/include $GITHUB_WORKSPACE/theos/vendor/lib
-      - name: Create CydiaSubstrate stub
+          git clone --depth=1 https://github.com/theos/theos.git "$GITHUB_WORKSPACE/theos"
+          cd "$GITHUB_WORKSPACE/theos"
+          git submodule update --init --recursive
+          rm -rf "$GITHUB_WORKSPACE/theos/sdks"
+          mkdir -p "$GITHUB_WORKSPACE/theos/sdks"
+          curl --fail --location --silent --show-error https://github.com/theos/sdks/releases/latest/download/iPhoneOS16.5.sdk.tar.xz | tar -xJf - -C "$GITHUB_WORKSPACE/theos/sdks/"
+          mkdir -p "$GITHUB_WORKSPACE/theos/vendor/include" "$GITHUB_WORKSPACE/theos/vendor/lib"
+
+      - name: Create CydiaSubstrate compatibility stub
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p CydiaSubstrate.framework
-          # Create a minimal stub dylib for CydiaSubstrate
-          cat > /tmp/stub.c << 'STUBEOF'
+          cat > /tmp/tiktiger_substrate_stub.c <<'STUBEOF'
           #include <objc/runtime.h>
           void MSHookMessageEx(Class cls, SEL sel, IMP imp, IMP *old) {}
           void MSHookFunction(void *sym, void *hook, void **old) {}
           STUBEOF
-          xcrun -sdk iphoneos clang -arch arm64 -arch arm64e -dynamiclib -o CydiaSubstrate.framework/CydiaSubstrate /tmp/stub.c -install_name @rpath/CydiaSubstrate.framework/CydiaSubstrate -framework Foundation 2>/dev/null || \
-          xcrun clang -target arm64-apple-ios14.0 -dynamiclib -o CydiaSubstrate.framework/CydiaSubstrate /tmp/stub.c -install_name @rpath/CydiaSubstrate.framework/CydiaSubstrate -isysroot $(xcrun --sdk iphoneos --show-sdk-path)
+          xcrun -sdk iphoneos clang -arch arm64 -arch arm64e -dynamiclib \
+            -o CydiaSubstrate.framework/CydiaSubstrate \
+            /tmp/tiktiger_substrate_stub.c \
+            -install_name @rpath/CydiaSubstrate.framework/CydiaSubstrate \
+            -framework Foundation
+          test -f CydiaSubstrate.framework/CydiaSubstrate
+
       - name: Build package
+        shell: bash
         run: |
-          export THEOS=$GITHUB_WORKSPACE/theos
-          make package FINALPACKAGE=1 THEOS=$THEOS
-      - name: Extract dylib
+          set -euo pipefail
+          export THEOS="$GITHUB_WORKSPACE/theos"
+          mkdir -p BuildLogs
+          make clean 2>&1 | tee BuildLogs/make-clean.log
+          make package FINALPACKAGE=1 THEOS="$THEOS" 2>&1 | tee BuildLogs/make-package.log
+
+      - name: Extract and verify Tiktiger.dylib
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p output
-          find .theos -name "Tiktiger.dylib" -exec cp {} output/ \;
-          if [ ! -f output/Tiktiger.dylib ]; then
-            find .theos -name "*.dylib" ! -name "CydiaSubstrate" -exec cp {} output/ \;
-          fi
+          DYLIB="$(find .theos -type f -name 'Tiktiger.dylib' -print -quit)"
+          test -n "$DYLIB"
+          cp "$DYLIB" output/Tiktiger.dylib
+          file output/Tiktiger.dylib | tee BuildLogs/file.txt
+          otool -L output/Tiktiger.dylib | tee BuildLogs/otool-L.txt
+          shasum -a 256 output/Tiktiger.dylib | tee BuildLogs/sha256.txt
+          test "$(file output/Tiktiger.dylib | grep -c 'Mach-O')" -eq 1
+          find .theos -type f -name '*.deb' -exec cp {} output/ \; || true
           ls -la output/
-      - uses: actions/upload-artifact@v4
+
+      - name: Upload dylib, package, and build logs
+        uses: actions/upload-artifact@v4
         with:
-          name: Tiktiger-dylib
-          path: output/
+          name: Tiktiger-dylib-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            output/Tiktiger.dylib
+            output/*.deb
+            BuildLogs/*.log
+            BuildLogs/*.txt
