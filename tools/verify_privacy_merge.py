@@ -22,6 +22,8 @@ for name, (key, cls, selector) in checks.items():
     if key not in prefs: errors.append(f'{name}: preference key not present in Settings model')
 if 'TTInstallCheckedHook' not in hooks: errors.append('Checked hook helper missing')
 if 'CydiaSubstrate' not in makefile: errors.append('Makefile lost CydiaSubstrate framework')
+if '-Wl,-headerpad_max_install_names' not in makefile or '-Wl,-headerpad,0x10000' not in makefile:
+    errors.append('Makefile missing Mach-O header padding for post-injection signing')
 for required in ('test -n "$DYLIB"', 'output/Tiktiger.dylib', 'otool -L', 'shasum -a 256', 'actions/upload-artifact@v4'):
     if required not in workflow: errors.append(f'Workflow missing {required}')
 # Prevent accidental reuse of a single original IMP for both sender classes.

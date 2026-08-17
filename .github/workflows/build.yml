@@ -66,6 +66,7 @@ jobs:
           cp "$DYLIB" output/Tiktiger.dylib
           file output/Tiktiger.dylib | tee BuildLogs/file.txt
           otool -L output/Tiktiger.dylib | tee BuildLogs/otool-L.txt
+          otool -l output/Tiktiger.dylib | tee BuildLogs/otool-load-commands.txt
           shasum -a 256 output/Tiktiger.dylib | tee BuildLogs/sha256.txt
           test "$(file output/Tiktiger.dylib | grep -c 'Mach-O')" -eq 1
           if compgen -G 'packages/*.deb' > /dev/null; then
