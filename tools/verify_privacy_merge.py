@@ -1,47 +1,52 @@
+#!/usr/bin/env python3
 from pathlib import Path
-import re
+import sys
 
 root = Path(__file__).resolve().parents[1]
-hooks = (root / 'TiktigerHooks.m').read_text(encoding='utf-8')
 prefs = (root / 'TiktigerPrefs.m').read_text(encoding='utf-8')
-workflow = (root / '.github/workflows/build.yml').read_text(encoding='utf-8')
-makefile = (root / 'Makefile').read_text(encoding='utf-8')
+header = (root / 'TiktigerPrefs.h').read_text(encoding='utf-8')
 window = (root / 'TiktigerWindow.m').read_text(encoding='utf-8')
+hooks = (root / 'TiktigerHooks.m').read_text(encoding='utf-8')
 resources = (root / 'TiktigerResources.h').read_text(encoding='utf-8')
+makefile = (root / 'Makefile').read_text(encoding='utf-8')
+workflow = (root / '.github/workflows/build.yml').read_text(encoding='utf-8')
+
 errors = []
-checks = {
-    'Anonymous Profile Visits': ('anonymousProfiles', 'TTKProfileViewsVisitor', 'p_shouldReportProfileView'),
-    'Keep Story Unseen': ('unseenStories', 'TTKStoryMarkReadService', 'markAsRead:'),
-    'Keep Messages Unseen': ('unreadMessages', 'AWEIMMessageReadComponent', 'p_markReadSyncToServerWithMessage:'),
-    'Hide Typing': ('hideTyping', 'AWEIMSendMessageController', 'sendTyping:'),
-}
-for name, (key, cls, selector) in checks.items():
-    if f'TTBool(@"{key}")' not in hooks: errors.append(f'{name}: hook does not read {key}')
-    if cls not in hooks or selector not in hooks: errors.append(f'{name}: target class/selector missing')
-    if f'@[[self item:' in prefs and key not in prefs: errors.append(f'{name}: Settings key missing')
-    if key not in prefs: errors.append(f'{name}: preference key not present in Settings model')
-if 'TTInstallCheckedHook' not in hooks: errors.append('Checked hook helper missing')
-if 'CydiaSubstrate' not in makefile: errors.append('Makefile lost CydiaSubstrate framework')
+keys = ('anonymousProfiles', 'unseenStories', 'unreadMessages', 'hideTyping')
+for key in keys:
+    if prefs.count(f'@"{key}"') != 1:
+        errors.append(f'preference catalog key count is not 1: {key}')
+    if f'TTBool(@"{key}")' not in hooks:
+        errors.append(f'hook preference read missing: {key}')
+if 'TTPrivacyFeatureDefinitions()' not in window or 'toggleFeature:' not in window:
+    errors.append('Settings feature catalog binding missing')
+if 'feature[@"key"]' not in window:
+    errors.append('Settings does not bind switches to catalog keys')
+
+if 'TTInstallCheckedHook' not in hooks:
+    errors.append('guarded hook helper missing')
+if 'TiktigerPrefs.m TiktigerWindow.m TiktigerHooks.m' not in makefile:
+    errors.append('Makefile contains unexpected source layout')
 if '-Wl,-headerpad_max_install_names' not in makefile or '-Wl,-headerpad,0x10000' not in makefile:
-    errors.append('Makefile missing Mach-O header padding for post-injection signing')
-for required in ('test -n "$DYLIB"', 'output/Tiktiger.dylib', 'dpkg-deb -x', 'DynamicLibraries/Tiktiger.dylib', 'dSYM companion', 'otool -L', 'lipo -info', 'shasum -a 256', 'actions/upload-artifact@v4'):
-    if required not in workflow: errors.append(f'Workflow missing {required}')
+    errors.append('Mach-O header padding missing')
 if 'find .theos -type f -name \'Tiktiger.dylib\'' in workflow:
-    errors.append('Workflow still extracts Tiktiger.dylib directly from .theos and may select dSYM')
-# Prevent accidental reuse of a single original IMP for both sender classes.
-for name in ('TTOriginalTypingControllerBool', 'TTOriginalTypingControllerStatus', 'TTOriginalTypingSenderBool', 'TTOriginalTypingSenderStatus'):
-    if hooks.count(name) < 2: errors.append(f'Original pointer not fully wired: {name}')
-if 'http://' in hooks or 'https://' in hooks or 'NSURLSession' in hooks:
-    errors.append('Privacy hooks unexpectedly contain network code')
-for asset in ('assets/tiktiger-main.png', 'assets/tiktiger-download.png', 'assets/tiktiger-developer-cover.jpg'):
-    if not (root / asset).exists(): errors.append(f'Missing asset: {asset}')
-    if asset not in makefile: errors.append(f'Asset not listed in Makefile: {asset}')
-if 'TTDeveloperCover' not in resources or 'TTDeveloperCover' not in window:
-    errors.append('Developer cover is not connected to Resources and Settings UI')
-if 'TTMainLogo()' not in window or 'TTDownloadIcon()' not in window:
-    errors.append('Main/download UI asset helpers are not used')
-report = ['# Previous repo privacy merge verification', '', f'Errors: {len(errors)}', '']
-report += ['- None'] if not errors else [f'- {e}' for e in errors]
-(root / 'docs/PRIVACY_MERGE_VERIFICATION.md').write_text('\n'.join(report) + '\n', encoding='utf-8')
-print('\n'.join(report))
-raise SystemExit(1 if errors else 0)
+    errors.append('workflow still extracts possible dSYM from .theos')
+for required in ('dpkg-deb -x', 'DynamicLibraries/Tiktiger.dylib', 'dSYM companion', 'lipo -info', 'otool -l', 'actions/upload-artifact@v4'):
+    if required not in workflow:
+        errors.append(f'workflow missing: {required}')
+if 'TTExtractMediaURL' in header or 'TTDownloadMedia' in header or 'TTConfirm' in header:
+    errors.append('legacy media/confirmation API remains in preferences header')
+if 'kTiktigerMainLogoB64' in resources or 'kTiktigerDownloadIconB64' in resources:
+    errors.append('legacy Base64 assets remain')
+for legacy in ('hideAds', 'downloadButton', 'repeatMessages', 'tapBot', 'persistentSpeed', 'confirmLike', 'fakeCamera'):
+    if legacy in prefs or legacy in window:
+        errors.append(f'legacy feature remains in new Settings: {legacy}')
+if 'Tiktiger.v2.' not in prefs:
+    errors.append('v2 preference namespace missing')
+
+print('# Tiktiger v2 redesign verification')
+print(f'Errors: {len(errors)}')
+for error in errors:
+    print(f'- {error}')
+if errors:
+    sys.exit(1)

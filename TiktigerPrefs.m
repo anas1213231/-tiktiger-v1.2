@@ -1,24 +1,77 @@
 #import "TiktigerPrefs.h"
-#import "TiktigerResources.h"
-#import <AVFoundation/AVFoundation.h>
-#import <SafariServices/SafariServices.h>
-static NSString *TTKey(NSString *key){ return [@"Tiktiger." stringByAppendingString:key]; }
-BOOL TTBool(NSString *key){ return [[NSUserDefaults standardUserDefaults] boolForKey:TTKey(key)]; }
-void TTSetBool(NSString *key, BOOL value){ [[NSUserDefaults standardUserDefaults] setBool:value forKey:TTKey(key)]; [[NSUserDefaults standardUserDefaults] synchronize]; }
-double TTNumber(NSString *key, double fallback){ NSNumber *n=[[NSUserDefaults standardUserDefaults] objectForKey:TTKey(key)]; return n ? n.doubleValue : fallback; }
-void TTSetNumber(NSString *key, double value){ [[NSUserDefaults standardUserDefaults] setDouble:value forKey:TTKey(key)]; }
-NSString *TTString(NSString *key, NSString *fallback){ return [[NSUserDefaults standardUserDefaults] stringForKey:TTKey(key)] ?: fallback; }
-static id TTValue(id object, NSArray<NSString *> *names){ for(NSString *name in names){ @try { id value=[object valueForKey:name]; if(value && value!=[NSNull null]) return value; } @catch(__unused NSException *e){} } return nil; }
-NSURL *TTExtractMediaURL(id object){ id value=TTValue(object,@[@"videoURL",@"playURL",@"downloadURL",@"url"]); if([value isKindOfClass:NSURL.class]) return value; if([value isKindOfClass:NSString.class]) return [NSURL URLWithString:value]; return nil; }
-void TTSaveImage(UIImage *image){ if(!image) return; UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil); }
-void TTDownloadMedia(NSURL *url, UIViewController *presenter, BOOL shareAfter){ if(!url) return; NSURLSessionDownloadTask *task=[[NSURLSession sharedSession] downloadTaskWithURL:url completionHandler:^(NSURL *location, NSURLResponse *response, NSError *error){ if(error||!location) return; NSString *ext=response.suggestedFilename.pathExtension.length?response.suggestedFilename.pathExtension:@"mp4"; NSURL *destination=[NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:[NSString stringWithFormat:@"tiktiger-%@.%@",NSUUID.UUID.UUIDString,ext]]]; [[NSFileManager defaultManager] moveItemAtURL:location toURL:destination error:nil]; dispatch_async(dispatch_get_main_queue(),^{ if(shareAfter && presenter){ UIActivityViewController *share=[[UIActivityViewController alloc] initWithActivityItems:@[destination] applicationActivities:nil]; [presenter presentViewController:share animated:YES completion:nil]; } else { UIAlertController *a=[UIAlertController alertControllerWithTitle:@"Tiktiger" message:@"Saved to temporary media URL" preferredStyle:UIAlertControllerStyleAlert]; [a addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]]; [presenter presentViewController:a animated:YES completion:nil]; } }); }]; [task resume]; }
-void TTConfirm(UIViewController *presenter, NSString *title, NSString *message, void (^accept)(void)){ UIAlertController *a=[UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert]; [a addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]]; [a addAction:[UIAlertAction actionWithTitle:@"Continue" style:UIAlertActionStyleDefault handler:^(__unused UIAlertAction *x){ if(accept) accept(); }]]; [presenter presentViewController:a animated:YES completion:nil]; }
-NSArray *TTFeatureSections(void){ return @[
-@{@"title":@"HOME",@"rows":@[@[@"hideAds",@"إخفاء الإعلانات",@"Hide ads",@"nosign"],@[@"progressBar",@"شريط التقدم",@"Progress bar",@"gauge"],@[@"showUsername",@"عرض اسم المستخدم",@"Show username",@"person"],@[@"contentCountry",@"دولة المحتوى",@"Content country",@"globe"],@[@"transparentComments",@"تعليقات شفافة",@"Transparent comments",@"bubble.left"],@[@"disableRefresh",@"تعطيل تحديث الصفحة",@"Disable refresh",@"arrow.clockwise"],@[@"disableSensitiveFilter",@"تعطيل فلتر المحتوى",@"Disable sensitive filter",@"eye.slash"],@[@"disableWarnings",@"تعطيل التحذيرات",@"Disable warnings",@"exclamationmark.triangle"],@[@"hideLive",@"إخفاء البث المباشر",@"Hide live",@"dot.radiowaves.left.and.right"],@[@"stopReplay",@"منع تكرار الفيديو",@"Stop replay",@"repeat"],@[@"skipRecommended",@"تخطي التوصيات",@"Skip recommendations",@"forward"]]},
-@{@"title":@"DOWNLOADS",@"rows":@[@[@"downloadButton",@"زر التحميل",@"Download button",@"arrow.down.circle"],@[@"directHDDownload",@"تحميل مباشر HD",@"Direct HD download",@"arrow.down.to.line"],@[@"showShareAfterDownload",@"قائمة المشاركة بعد التحميل",@"Share after download",@"square.and.arrow.up"]]},
-@{@"title":@"STORIES & MESSAGES",@"rows":@[@[@"unseenStories",@"ستوري غير مشاهد",@"Unseen stories",@"eye"],@[@"downloadStories",@"تحميل الستوري",@"Download stories",@"photo"],@[@"unreadMessages",@"رسائل غير مقروءة",@"Keep messages unread",@"envelope"],@[@"hideTyping",@"إخفاء جار الكتابة",@"Hide typing",@"ellipsis.bubble"],@[@"repeatMessages",@"تكرار الرسائل",@"Repeat messages",@"repeat.1"]]},
-@{@"title":@"MEDIA",@"rows":@[@[@"saveCommentPhotos",@"حفظ صور التعليقات",@"Save comment photos",@"photo.on.rectangle"],@[@"hideInterface",@"إظهار/إخفاء الواجهة",@"Hide interface",@"eye.slash"],@[@"photosToVideo",@"الصور إلى فيديو",@"Photos to video",@"film"],@[@"fakeCamera",@"كاميرا وهمية",@"Fake camera",@"camera"],@[@"frameInjector",@"حقن الإطارات",@"Frame injector",@"video"],@[@"fakeMicrophone",@"استبدال الميكروفون",@"Microphone injection",@"mic"]]},
-@{@"title":@"PROFILE",@"rows":@[@[@"saveAvatar",@"حفظ صورة الملف",@"Save profile photo",@"person.crop.circle"],@[@"copyBio",@"نسخ معلومات الملف",@"Copy bio",@"doc.on.doc"],@[@"profileVideoCount",@"عدد فيديوهات الملف",@"Profile video count",@"number"],@[@"followStatus",@"حالة المتابعة",@"Follow status",@"person.2"],@[@"profileLikes",@"عدد الإعجابات",@"Profile likes",@"heart"],@[@"uploadDate",@"تاريخ الرفع",@"Upload date",@"calendar"],@[@"anonymousProfiles",@"زيارة ملفات مجهولة",@"Anonymous profiles",@"person.crop.circle.badge.xmark"],@[@"expandedBio",@"نبذة موسعة",@"Expanded bio",@"text.alignleft"]]},
-@{@"title":@"CONFIRMATIONS",@"rows":@[@[@"confirmLike",@"تأكيد الإعجاب",@"Confirm like",@"heart.circle"],@[@"confirmCommentLike",@"تأكيد إعجاب التعليق",@"Confirm comment like",@"bubble.left.and.heart"],@[@"confirmCommentUnlike",@"تأكيد عدم الإعجاب",@"Confirm unlike",@"heart.slash"],@[@"confirmFollow",@"تأكيد المتابعة",@"Confirm follow",@"person.badge.plus"]]},
-@{@"title":@"OTHER",@"rows":@[@[@"openSafari",@"فتح في سفاري",@"Always open Safari",@"safari"],@[@"expandedComments",@"تعليقات موسعة",@"Expanded comments",@"text.bubble"],@[@"highQualityUpload",@"رفع بجودة عالية",@"High quality upload",@"4k.tv"],@[@"appLock",@"قفل التطبيق",@"App lock",@"lock"],@[@"liveButtonAction",@"وظيفة زر البث",@"Live button action",@"slider.horizontal.3"]]},
-@{@"title":@"SPEED & DEVELOPER",@"rows":@[@[@"persistentSpeed",@"سرعة ثابتة",@"Persistent speed",@"speedometer"],@[@"playbackSpeed",@"السرعة",@"Playback speed",@"speedometer"],@[@"floatingHUD",@"HUD عائمة",@"Floating HUD",@"rectangle.inset.filled"],@[@"tapBot",@"TapBot",@"TapBot",@"hand.tap"],@[@"developerTelegram",@"المطور @ucorc",@"Developer @ucorc",@"paperplane"],@[@"builtBy",@"Built with ❤️ by @ucorc",@"Built with ❤️ by @ucorc",@"heart.fill"],@[@"slideDuration",@"مدة الشريحة",@"Slide duration",@"timer"],@[@"dateFormat",@"تنسيق التاريخ",@"Date format",@"calendar.badge.clock"],@[@"liveButtonDefault",@"إجراء البث الافتراضي",@"Live default action",@"play"]]}]; }
+
+static NSString * const kTTPreferencePrefix = @"Tiktiger.v2.";
+static NSString * const kTTArabicLanguageKey = @"Tiktiger.v2.languageArabic";
+
+static NSString *TTKey(NSString *key) {
+    return [kTTPreferencePrefix stringByAppendingString:key ?: @""];
+}
+
+BOOL TTBool(NSString *key) {
+    return [[NSUserDefaults standardUserDefaults] boolForKey:TTKey(key)];
+}
+
+void TTSetBool(NSString *key, BOOL value) {
+    NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
+    [defaults setBool:value forKey:TTKey(key)];
+    [defaults synchronize];
+}
+
+BOOL TTArabicLanguage(void) {
+    NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
+    if ([defaults objectForKey:kTTArabicLanguageKey] == nil) return YES;
+    return [defaults boolForKey:kTTArabicLanguageKey];
+}
+
+void TTSetArabicLanguage(BOOL arabic) {
+    NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
+    [defaults setBool:arabic forKey:kTTArabicLanguageKey];
+    [defaults synchronize];
+}
+
+NSArray<NSDictionary *> *TTPrivacyFeatureDefinitions(void) {
+    return @[
+        @{
+            @"key": @"anonymousProfiles",
+            @"titleAR": @"زيارات ملف مجهولة",
+            @"titleEN": @"Anonymous Profile Visits",
+            @"detailAR": @"تمنع إرسال إشعار زيارة الملف عند تفعيلها.",
+            @"detailEN": @"Suppresses profile-visit reporting while enabled.",
+            @"icon": @"person.crop.circle.badge.xmark",
+            @"accent": @"#56D6C7"
+        },
+        @{
+            @"key": @"unseenStories",
+            @"titleAR": @"مشاهدة الستوري دون ظهور",
+            @"titleEN": @"Keep Story Unseen",
+            @"detailAR": @"تحافظ على حالة الستوري غير مشاهدة.",
+            @"detailEN": @"Keeps story read state unchanged.",
+            @"icon": @"circle.dashed",
+            @"accent": @"#8D7CFF"
+        },
+        @{
+            @"key": @"unreadMessages",
+            @"titleAR": @"الرسائل غير مقروءة",
+            @"titleEN": @"Keep Messages Unseen",
+            @"detailAR": @"توقف مزامنة إيصال قراءة الرسائل.",
+            @"detailEN": @"Suppresses message-read receipt synchronization.",
+            @"icon": @"envelope.badge",
+            @"accent": @"#FF8A72"
+        },
+        @{
+            @"key": @"hideTyping",
+            @"titleAR": @"إخفاء حالة الكتابة",
+            @"titleEN": @"Hide Typing",
+            @"detailAR": @"يمنع إرسال مؤشر جارٍ بالكتابة.",
+            @"detailEN": @"Suppresses typing-status events.",
+            @"icon": @"ellipsis.bubble",
+            @"accent": @"#F5C96A"
+        }
+    ];
+}
+
+void TTResetPrivacySettings(void) {
+    for (NSDictionary *feature in TTPrivacyFeatureDefinitions()) {
+        TTSetBool(feature[@"key"], NO);
+    }
+}

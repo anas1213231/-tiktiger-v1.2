@@ -1,8 +1,8 @@
 Package: com.ucorc.tiktiger
 Name: Tiktiger
-Version: 1.1
+Version: 2.0
 Architecture: iphoneos-arm
-Description: Tiktiger — privacy, media and UI enhancements for TikTok
+Description: Tiktiger Privacy Lab — four isolated privacy controls for TikTok
 Maintainer: @ucorc (Telegram)
 Author: @ucorc
 Section: Tweaks

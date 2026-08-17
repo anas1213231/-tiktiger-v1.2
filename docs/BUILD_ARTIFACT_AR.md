@@ -1,19 +1,20 @@
-# استخراج Tiktiger.dylib من GitHub Actions
+# بناء Artifact — Tiktiger v2.0
 
-بعد رفع التعديلات إلى الفرع `main`، افتح تبويب **Actions** في المستودع، ثم اختر workflow باسم **Build Tiktiger dylib**. افتح آخر تشغيل ناجح، وانزل إلى قسم **Artifacts**. حمّل الملف الذي يبدأ باسم `Tiktiger-dylib-`.
+يبني GitHub Actions الحزمة على macOS مع Theos وiPhoneOS SDK، ثم ينفذ `make package FINALPACKAGE=1` ويجمع ملف `.deb` الناتج. بعد ذلك يفك الحزمة في مجلد مؤقت ويستخرج الملف التنفيذي من `usr/lib/TweakInject/Tiktiger.dylib` أو `Library/MobileSubstrate/DynamicLibraries/Tiktiger.dylib`، بدل استخدام ملفات `.theos/obj` أو ملفات dSYM المرافقة.
 
-بعد فك الضغط ستجد عادةً:
+## مخرجات التشغيل
 
-```text
-Tiktiger.dylib
-Tiktiger-*.deb
-file.txt
-otool-L.txt
-sha256.txt
-make-clean.log
-make-package.log
-```
+| الملف | الغرض |
+|---|---|
+| `Tiktiger-v2.0.deb` | حزمة التثبيت المبنية |
+| `Tiktiger.dylib` | الملف التنفيذي المستخرج من داخل الحزمة |
+| `SHA256SUMS.txt` | بصمات SHA-256 للمخرجات |
+| `verification/file.txt` | إثبات أن الملف Mach-O dylib تنفيذي وليس dSYM |
 
-إذا ظهر التشغيل باللون الأحمر، افتح الخطوة التي فشلت واقرأ `make-package.log` أو سجل الخطوة نفسها. أكثر الأسباب شيوعًا هي تغيّر iOS SDK أو عدم توافق class/selector مع إصدار TikTok المستهدف.
+## شروط النجاح
 
-لا تحتاج إلى جهاز Apple لتشغيل GitHub Actions؛ GitHub يستخدم runner يعمل على macOS. لا ترفع أي ملف dylib تم الحصول عليه من مصدر غير موثوق، وراجع `sha256.txt` وسجل البناء قبل استخدام الـ artifact على Target مصرح.
+يجب أن ينجح فحص `file` باعتبار المكتبة **dynamically linked shared library**، وأن يعرض `lipo -info` معماريتي `arm64` و`arm64e`، وأن يحتوي `otool -l` على مسار التوقيع المتوقع ومساحة header كافية لإعادة التوقيع والحقن. يرفض workflow أي ملف ينتهي باسم `dSYM` أو يحتوي على companion لا يمثل المكتبة التنفيذية.
+
+## حدود التحقق
+
+نجاح workflow يثبت أن المصدر قابل للبناء وأن Artifact المستخرج هو الملف التنفيذي الصحيح. لا يثبت وحده وجود كل selector في نسخة TikTok المستهدفة؛ لذلك تُجرى اختبارات Runtime منفصلة على جهاز مصرح وبنسخة TikTok 46.3، مع اختبار كل مفتاح على حدة.
