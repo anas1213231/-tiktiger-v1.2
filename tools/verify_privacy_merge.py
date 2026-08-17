@@ -24,8 +24,10 @@ if 'TTInstallCheckedHook' not in hooks: errors.append('Checked hook helper missi
 if 'CydiaSubstrate' not in makefile: errors.append('Makefile lost CydiaSubstrate framework')
 if '-Wl,-headerpad_max_install_names' not in makefile or '-Wl,-headerpad,0x10000' not in makefile:
     errors.append('Makefile missing Mach-O header padding for post-injection signing')
-for required in ('test -n "$DYLIB"', 'output/Tiktiger.dylib', 'otool -L', 'shasum -a 256', 'actions/upload-artifact@v4'):
+for required in ('test -n "$DYLIB"', 'output/Tiktiger.dylib', 'dpkg-deb -x', 'DynamicLibraries/Tiktiger.dylib', 'dSYM companion', 'otool -L', 'lipo -info', 'shasum -a 256', 'actions/upload-artifact@v4'):
     if required not in workflow: errors.append(f'Workflow missing {required}')
+if 'find .theos -type f -name \'Tiktiger.dylib\'' in workflow:
+    errors.append('Workflow still extracts Tiktiger.dylib directly from .theos and may select dSYM')
 # Prevent accidental reuse of a single original IMP for both sender classes.
 for name in ('TTOriginalTypingControllerBool', 'TTOriginalTypingControllerStatus', 'TTOriginalTypingSenderBool', 'TTOriginalTypingSenderStatus'):
     if hooks.count(name) < 2: errors.append(f'Original pointer not fully wired: {name}')

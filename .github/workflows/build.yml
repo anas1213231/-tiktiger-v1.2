@@ -56,22 +56,30 @@ jobs:
           make clean 2>&1 | tee BuildLogs/make-clean.log
           make package FINALPACKAGE=1 THEOS="$THEOS" 2>&1 | tee BuildLogs/make-package.log
 
-      - name: Extract and verify Tiktiger.dylib
+      - name: Extract and verify executable Tiktiger.dylib from deb
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p output
-          DYLIB="$(find .theos -type f -name 'Tiktiger.dylib' -print -quit)"
+          mkdir -p output package-extract
+          PKG="$(find packages -maxdepth 1 -type f -name '*.deb' -print -quit)"
+          test -n "$PKG"
+          cp "$PKG" output/
+          dpkg-deb -x "$PKG" package-extract
+          DYLIB="$(find package-extract -type f -path '*/DynamicLibraries/Tiktiger.dylib' -print -quit)"
           test -n "$DYLIB"
+          FILE_DESC="$(file -b "$DYLIB")"
+          printf '%s: %s\n' "$DYLIB" "$FILE_DESC" | tee BuildLogs/file.txt
+          printf '%s\n' "$FILE_DESC" | grep -Eiq 'dynamically linked shared library|Mach-O universal binary'
+          if printf '%s\n' "$FILE_DESC" | grep -Eiq 'dSYM companion|debug symbol'; then
+            echo 'Refusing to package a dSYM companion instead of the executable dylib.' >&2
+            exit 1
+          fi
           cp "$DYLIB" output/Tiktiger.dylib
-          file output/Tiktiger.dylib | tee BuildLogs/file.txt
+          lipo -info output/Tiktiger.dylib | tee BuildLogs/lipo-info.txt
           otool -L output/Tiktiger.dylib | tee BuildLogs/otool-L.txt
           otool -l output/Tiktiger.dylib | tee BuildLogs/otool-load-commands.txt
           shasum -a 256 output/Tiktiger.dylib | tee BuildLogs/sha256.txt
-          test "$(file output/Tiktiger.dylib | grep -c 'Mach-O')" -eq 1
-          if compgen -G 'packages/*.deb' > /dev/null; then
-            cp packages/*.deb output/
-          fi
+          test -s output/Tiktiger.dylib
           ls -la output/
 
       - name: Upload dylib, package, and build logs

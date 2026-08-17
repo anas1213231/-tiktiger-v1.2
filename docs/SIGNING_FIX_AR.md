@@ -12,7 +12,25 @@ Failed to sign dylib file: Frameworks/Tiktiger.dylib
 
 هذا الخطأ يحدث بعد نجاح حقن `Tiktiger.dylib`، عندما يحاول zsign إضافة `LC_CODE_SIGNATURE` بعد أن أضاف LoadControl أو Injector أوامر تحميل جديدة إلى Mach-O. الملف يعمل كـ Mach-O، لكن رأسه لا يحتوي مساحة حرة كافية لإضافة الأمر الجديد.
 
-## الإصلاح
+## السبب الجذري المؤكد
+
+تبين أن workflow السابق كان يستخدم:
+
+```sh
+find .theos -type f -name 'Tiktiger.dylib'
+```
+
+وهذا يلتقط أحيانًا ملف dSYM companion الموجود في مخرجات Theos، وليس المكتبة التنفيذية الموجودة داخل الحزمة. لذلك كان الملف المرفوع يحمل وصفًا مثل `Mach-O 64-bit dSYM companion file`، بينما الملف الصحيح داخل `.deb` يوصف بأنه `dynamically linked shared library` لمعمارَي arm64 وarm64e.
+
+تم تغيير workflow ليبني `.deb` أولًا، ثم يفك الحزمة، ويأخذ فقط:
+
+```text
+Library/MobileSubstrate/DynamicLibraries/Tiktiger.dylib
+```
+
+كما يرفض workflow أي ملف تصفه `file` بأنه dSYM أو debug symbol، ويسجل `lipo -info` و`otool -L` و`otool -l` قبل رفع Artifact.
+
+## إصلاح مساحة Mach-O
 
 تم تعديل `Makefile` ليحجز مساحة مسبقة في رأس Mach-O:
 
@@ -24,7 +42,7 @@ Tiktiger_LDFLAGS = ... -Wl,-headerpad_max_install_names -Wl,-headerpad,0x10000
 
 ## ما يجب فعله
 
-بعد رفع commit الإصلاح، انتظر تشغيل GitHub Actions حتى ينجح، ثم حمّل الـ Artifact الجديد. لا تستخدم Artifact القديم قبل الإصلاح؛ لأنه قد يعطي نفس خطأ zsign.
+بعد رفع commit الإصلاح، انتظر تشغيل GitHub Actions حتى ينجح، ثم حمّل الـ Artifact الجديد. لا تستخدم Artifact القديم قبل الإصلاح؛ لأنه كان قد يحتوي dSYM companion بدل dylib التنفيذي. استخدم `Tiktiger.dylib` الموجود داخل Artifact الجديد أو داخل `.deb` الناتج من نفس التشغيل.
 
 داخل أداة التوقيع، استخدم التسلسل التالي: حقن dylib أولًا، تعديل التبعيات المطلوبة، ثم توقيع Frameworks وdylibs، ثم توقيع التطبيق الرئيسي في النهاية. لا توقّع `Tiktiger.dylib` ثم تعيد تعديل Load Commands بعد التوقيع.
 
