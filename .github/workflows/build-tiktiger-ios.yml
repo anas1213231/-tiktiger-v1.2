@@ -133,7 +133,13 @@ jobs:
           if test "$ARCH_LIST" = 'arm64'; then :; else VERIFY_STATUS=1; fi
 
           if OTOOL_HV_RESULT="$(otool -hv "$OUTPUT" 2>&1)"; then :; else VERIFY_STATUS=1; fi
-          if printf '%s\n' "$OTOOL_HV_RESULT" | grep -Eiq 'MH_DYLIB'; then :; else VERIFY_STATUS=1; fi
+          if printf '%s\n' "$OTOOL_HV_RESULT" | grep -Eiq 'MH_DYLIB'; then
+            :
+          elif printf '%s\n' "$OTOOL_HV_RESULT" | grep -Eiq 'filetype[[:space:]]+DYLIB'; then
+            :
+          else
+            VERIFY_STATUS=1
+          fi
           if OTOOL_D_RESULT="$(otool -D "$OUTPUT" 2>&1)"; then :; else VERIFY_STATUS=1; fi
           if OTOOL_L_RESULT="$(otool -L "$OUTPUT" 2>&1)"; then :; else VERIFY_STATUS=1; fi
           if printf '%s\n' "$OTOOL_D_RESULT" | grep -Fq '@rpath/Tiktiger.dylib'; then :; else VERIFY_STATUS=1; fi
