@@ -424,7 +424,8 @@ jobs:
             SMOKE_STATUS=1
             echo 'SIMULATOR DEVICE: NOT FOUND' >> "$SMOKE_REPORT"
           else
-            xcrun simctl boot "$DEVICE_ID" >> "$SMOKE_LOG" 2>&1 || true
+            xcrun simctl boot "$DEVICE_ID" >> "$SMOKE_LOG" 2>&1 &
+            BOOT_PID=$!
             BOOTED_STATUS=1
             for boot_attempt in $(seq 1 60); do
               echo "SIMULATOR BOOT POLL: $boot_attempt" >> "$SMOKE_LOG"
@@ -434,6 +435,8 @@ jobs:
               fi
               sleep 2
             done
+            kill "$BOOT_PID" >/dev/null 2>&1 || true
+            wait "$BOOT_PID" >/dev/null 2>&1 || true
             if test "$BOOTED_STATUS" -eq 0; then
               echo "SIMULATOR DEVICE: $DEVICE_ID BOOTED" >> "$SMOKE_REPORT"
             else
@@ -495,6 +498,10 @@ jobs:
             echo 'UI PRESENTED: NOT VERIFIED by Host hierarchy probe'
           } > "$SMOKE_REPORT.tmp"
           mv "$SMOKE_REPORT.tmp" "$SMOKE_REPORT"
+          echo 'SMOKE REPORT (stdout):'
+          cat "$SMOKE_REPORT"
+          echo 'SMOKE CONSOLE TAIL (stdout):'
+          tail -n 100 "$SMOKE_LOG" || true
           if test "$SMOKE_STATUS" -ne 0; then
             echo 'FAILED' > "$GITHUB_WORKSPACE/runtime_smoke_status.txt"
             exit 1
