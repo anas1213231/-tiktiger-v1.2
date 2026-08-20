@@ -322,7 +322,7 @@ jobs:
           otool -l "$APP_PATH/TiktigerHost" | grep -A2 -F 'LC_RPATH' | grep -Fq '@executable_path/Frameworks'
 
           rm -rf "$PACKAGE_DIR"
-          mkdir -p "$IPA_ROOT/Payload"
+          mkdir -p "$IPA_ROOT/Payload" "$PACKAGE_DIR"
           ditto "$APP_PATH" "$IPA_ROOT/Payload/TiktigerHost.app"
           find "$IPA_ROOT/Payload/TiktigerHost.app" -type d -name '_CodeSignature' -prune -exec rm -rf {} +
           find "$IPA_ROOT/Payload/TiktigerHost.app" -type f -name 'embedded.mobileprovision' -delete
@@ -332,22 +332,26 @@ jobs:
           (cd "$IPA_ROOT" && zip -qry "$IPA_PATH" Payload)
           test -s "$IPA_PATH"
           rm -rf "$IPA_ROOT"
+          test -d "$PACKAGE_DIR"
 
-          {
-            echo 'IPA STATUS: UNSIGNED / SIGNABLE'
-            echo 'FINAL SIGNING: DEFERRED TO OWNER eSign'
-            echo "APP BUNDLE IDENTIFIER: $APP_BUNDLE_ID"
-            echo "CORE BUNDLE IDENTIFIER: $CORE_BUNDLE_ID"
-            echo "EMBEDDED DYLIB SHA-256: $ACTUAL_SHA"
-            echo 'EMBEDDED DYLIB PATH: Payload/TiktigerHost.app/Frameworks/Tiktiger.dylib'
-            echo 'DYLIB INSTALL NAME: @rpath/Tiktiger.dylib'
-            echo 'HOST RPATH: @executable_path/Frameworks'
-            echo 'PHOTOS USAGE DESCRIPTION: PRESENT'
-            echo 'FACE ID USAGE DESCRIPTION: PRESENT'
-            echo 'ENTITLEMENTS: NONE REQUIRED; SOURCE ENTITLEMENTS FILE IS EMPTY'
-            echo 'CODE SIGNING BYPASS: NOT USED'
-            echo 'REAL DEVICE RUNTIME: PENDING OWNER INSTALLATION'
-          } > "$PACKAGE_DIR/IPA_MANIFEST.txt"
+          cat > "$PACKAGE_DIR/IPA_MANIFEST.txt" <<EOF
+IPA STATUS: UNSIGNED / SIGNABLE
+FINAL SIGNING: DEFERRED TO OWNER eSign
+APP BUNDLE IDENTIFIER: $APP_BUNDLE_ID
+CORE BUNDLE IDENTIFIER: $CORE_BUNDLE_ID
+EMBEDDED DYLIB SHA-256: $ACTUAL_SHA
+EMBEDDED DYLIB PATH: Payload/TiktigerHost.app/Frameworks/Tiktiger.dylib
+DYLIB INSTALL NAME: @rpath/Tiktiger.dylib
+HOST RPATH: @executable_path/Frameworks
+PHOTOS USAGE DESCRIPTION: PRESENT
+FACE ID USAGE DESCRIPTION: PRESENT
+ENTITLEMENTS: NONE REQUIRED; SOURCE ENTITLEMENTS FILE IS EMPTY
+CODE SIGNING BYPASS: NOT USED
+REAL DEVICE RUNTIME: PENDING OWNER INSTALLATION
+EOF
+          test -s "$PACKAGE_DIR/IPA_MANIFEST.txt"
+          echo "UNSIGNED IPA READY: $IPA_PATH"
+          ls -lh "$IPA_PATH" "$PACKAGE_DIR/IPA_MANIFEST.txt"
 
       - name: Build TiktigerHost for iphonesimulator without device dylib
         shell: bash
