@@ -16,10 +16,22 @@
 
 مركز التنزيل الحالي منفصل في `TigerHost/Services/TiktigerMediaDownloadService.swift`. ينفذ مسارًا مباشرًا عند تزويده برابط HTTPS وسائط يقدمه المستخدم: يتحقق من المضيف، ينزّل async إلى ملف مؤقت، يحدد MIME/extension، يدعم الإلغاء، Retry داخل الجلسة، وسجلًا محليًا منزوع query/fragment، ثم يطلب صلاحية Photos ويحفظ الفيديو أو الصورة فعليًا. كما يدعم وضع Audio M4A عبر AVFoundation ويحفظ الناتج داخل Documents ويعرض مشاركة النظام. لا يوجد resolver لرابط منشور؛ عند الحاجة تكون الحالة `PROVIDER REQUIRED` حتى توفير endpoint/API مصرح.
 
+## Runtime Integration
+
+يحتوي Target `TigerHost` الآن على `TiktigerRuntimeCoordinator.swift`، ويضمّن `TigerHost/Runtime/Tiktiger.dylib` داخل `Frameworks` عبر PBX Copy Files phase مع `CodeSignOnCopy`. لا يوجد binary داخل المصدر عمدًا؛ يجب نسخ binary iOS arm64 الحقيقي الناتج من مشروع dylib إلى هذا المسار قبل بناء Host. غياب الملف يجب أن يفشل البناء أو يظهر `DYLIB LOADED = FAILED`، ولا يجوز إنشاء placeholder أو إعادة تسمية binary macOS.
+
+عند بدء `ContentView` يستدعي coordinator `dlopen` ثم `dlsym` على runtime APIs، ويعرض حالات `VERIFIED/FAILED` للتحميل وinitializer وCore وFeature registry وUI registration وUI presentation. مفاتيح الميزات الموجودة في registry تمر إلى `tt_set_feature_enabled`، بينما إعدادات المضيف المحلية تبقى في `TigerManager` ولا تتظاهر بأنها hooks داخل تطبيق آخر.
+
 ## طريقة التشغيل
 
-افتح `TigerIOSStarter.xcodeproj` في Xcode، اختر Scheme `TigerHost`، ثم اختر Simulator أو iPhone حقيقي. عند استخدام جهاز حقيقي يجب اختيار Team صحيح وتعديل Bundle ID. لا يحتوي المشروع على حقن داخل تطبيق طرف ثالث أو تجاوز توقيع أو صلاحيات النظام؛ أي دمج خارجي يجب أن يتم داخل بيئة مصرح بها وبآلية توقيع مناسبة.
+1. ابنِ `Tiktiger.dylib` الحقيقي على macOS/iPhoneOS.
+2. انسخه إلى `TigerHost/Runtime/Tiktiger.dylib`.
+3. افتح `TigerIOSStarter.xcodeproj`، اختر Scheme `TigerHost`، ثم اختر Simulator أو iPhone حقيقي.
+4. عند استخدام جهاز حقيقي اختر Team صحيحًا وعدّل Bundle ID ووقّع التطبيق والمكتبة وفق إعداداتك.
+5. افتح Diagnostics وتحقق من ظهور `[TiktigerRuntime]` ومن انتقال كل milestone إلى `VERIFIED`.
 
-## الحالة والمرحلة التالية
+لا يحتوي المشروع على حقن داخل تطبيق طرف ثالث أو تجاوز توقيع أو صلاحيات النظام؛ أي دمج خارجي يجب أن يتم داخل تطبيق تملكه أو بيئة مصرح بها وبآلية توقيع مناسبة.
 
-تمت إضافة طبقة التنزيل المباشر والحفظ وM4A والمصادقة المحلية وAppearance وTranslation وDiagnostics، مع تصنيف الحالات داخل Diagnostics. يبقى `TiktigerHostAdapter` في حزمة handoff كجسر Objective-C إلى Public API، لكنه غير مربوط داخل Target Starter لأن ملف dylib النهائي والتوقيع يختلفان حسب التطبيق المضيف المصرح. المرحلة التالية هي إضافة Provider/API مصرح لتحويل روابط التطبيق إلى روابط وسائط، ثم ربط hooks أو API المضيف لميزات Profile وStories وChats والخصوصية. لا تُعتبر أي ميزة مضيفة مكتملة حتى تُبنى على macOS، وتُختبر على Simulator وجهاز iPhone حقيقي، وتملك حالات نجاح وفشل وإلغاء وإعادة محاولة.
+## الحالة والحدود
+
+تمت إضافة طبقة التنزيل المباشر والحفظ وM4A والمصادقة المحلية وAppearance وTranslation وRuntime Diagnostics. يبقى Provider/API مصرح مطلوبًا لتحويل روابط التطبيق إلى روابط وسائط، كما أن ميزات Profile وStories وChats والخصوصية داخل تطبيق مضيف طرف ثالث تحتاج APIs أو Integration خاصة بذلك المضيف. لا تُعتبر أي ميزة Runtime مكتملة حتى تُبنى بالـbinary الصحيح وتُختبر على Simulator وجهاز iPhone حقيقي وتملك logs وحالات نجاح وفشل وإلغاء وإعادة محاولة.

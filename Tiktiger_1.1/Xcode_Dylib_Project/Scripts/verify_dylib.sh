@@ -54,11 +54,12 @@ fi
 echo
 echo "Public Tiktiger symbols:"
 SYMBOLS="$(nm -gU "$FILE")"
-echo "$SYMBOLS" | grep -E 'tt_(product_name|version|set_feature_enabled|validate_https_url|diagnostics_json)' >/dev/null || {
-  echo "ERROR: required public symbols are missing."
+REQUIRED_SYMBOLS='tt_(product_name|version|set_feature_enabled|validate_https_url|diagnostics_json|runtime_dylib_loaded|runtime_initialize|runtime_mark_ui_registered|runtime_mark_ui_presented|runtime_diagnostics_json)'
+echo "$SYMBOLS" | grep -E "$REQUIRED_SYMBOLS" >/dev/null || {
+  echo "ERROR: required public/runtime symbols are missing."
   exit 6
 }
-echo "$SYMBOLS" | grep -E 'tt_(product_name|version|set_feature_enabled|validate_https_url|diagnostics_json)' || true
+echo "$SYMBOLS" | grep -E "$REQUIRED_SYMBOLS" || true
 
 echo
 echo "Verification completed: Tiktiger.dylib is structurally valid for the configured build contract."

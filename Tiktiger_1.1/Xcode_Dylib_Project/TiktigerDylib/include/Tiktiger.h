@@ -71,6 +71,24 @@ TT_EXPORT const char *tt_download_stage_name(TTDownloadStage stage);
 /** Returns a small diagnostics JSON string without secrets or user data. */
 TT_EXPORT const char *tt_diagnostics_json(void);
 
+/** Explicitly initializes the runtime and emits a runtime log marker. */
+TT_EXPORT void tt_runtime_initialize(void);
+
+/** Marks the host UI registration/presentation milestones. */
+TT_EXPORT void tt_runtime_mark_ui_registered(void);
+TT_EXPORT void tt_runtime_mark_ui_presented(void);
+
+/** Runtime state probes: 1 means the milestone was observed, 0 otherwise. */
+TT_EXPORT int tt_runtime_dylib_loaded(void);
+TT_EXPORT int tt_runtime_initializer_executed(void);
+TT_EXPORT int tt_runtime_core_started(void);
+TT_EXPORT int tt_runtime_feature_registry_ready(void);
+TT_EXPORT int tt_runtime_ui_registered(void);
+TT_EXPORT int tt_runtime_ui_presented(void);
+
+/** Returns runtime milestone diagnostics JSON without user data. */
+TT_EXPORT const char *tt_runtime_diagnostics_json(void);
+
 #ifdef __cplusplus
 }
 #endif

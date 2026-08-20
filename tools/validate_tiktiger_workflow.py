@@ -37,6 +37,13 @@ required = {
     'no_build_ignore': 'xcodebuild' in text and not re.search(r'xcodebuild[^\n]*\|\|\s*true', text),
     'source_project_exists': (project_root / 'TiktigerDylib.xcodeproj').exists(),
     'features_preserved': (project_root / 'TiktigerDylib/src/TiktigerFeatures.c').exists(),
+    'host_project_path': ('Tiktiger_1.1/TigerIOSStarter' in text and 'HOST_PROJECT="$HOST_DIR/TigerIOSStarter.xcodeproj"' in text),
+    'host_scheme': '-scheme TigerHost' in text and "-destination 'generic/platform=iOS'" in text,
+    'host_build_log': 'host_build.log' in text and 'grep -q' in text,
+    'wire_real_dylib': 'cp -f "$OUTPUT" "$RUNTIME_DIR/Tiktiger.dylib"' in text,
+    'host_embedding_gate': 'test -f "$HOST_APP/Frameworks/Tiktiger.dylib"' in text,
+    'host_app_artifact': 'host_app/TigerHost.app' in text,
+    'host_runtime_artifact': 'host_runtime_embedding.txt' in text,
 }
 for name, ok in required.items():
     print(f'{name}: ' + ('OK' if ok else 'MISSING'))

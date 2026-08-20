@@ -18,6 +18,8 @@
 		100000000000000000000009 /* download_arrow.png in Resources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000091 /* download_arrow.png */; };
 					100000000000000000000010 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000092 /* Assets.xcassets */; };
 			100000000000000000000094 /* TiktigerMediaDownloadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000093 /* TiktigerMediaDownloadService.swift */; };
+			100000000000000000000095 /* TiktigerRuntimeCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000096 /* TiktigerRuntimeCoordinator.swift */; };
+			100000000000000000000097 /* Tiktiger.dylib in Embed Tiktiger */ = {isa = PBXBuildFile; fileRef = 100000000000000000000098 /* Tiktiger.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 
 /* End PBXBuildFile section */
 
@@ -59,6 +61,8 @@
 		100000000000000000000091 /* download_arrow.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = download_arrow.png; sourceTree = "<group>"; };
 					100000000000000000000092 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 			100000000000000000000093 /* TiktigerMediaDownloadService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TiktigerMediaDownloadService.swift; sourceTree = "<group>"; };
+			100000000000000000000096 /* TiktigerRuntimeCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TiktigerRuntimeCoordinator.swift; sourceTree = "<group>"; };
+			100000000000000000000098 /* Tiktiger.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = Tiktiger.dylib; sourceTree = "<group>"; };
 
 /* End PBXFileReference section */
 
@@ -109,6 +113,8 @@
 									100000000000000000000018 /* TigerHost.entitlements */,
 					100000000000000000000064 /* Resources */,
 					100000000000000000000065 /* Services */,
+					100000000000000000000096 /* TiktigerRuntimeCoordinator.swift */,
+					100000000000000000000066 /* Runtime */,
 					100000000000000000000092 /* Assets.xcassets */,
 				);
 				path = TigerHost;
@@ -139,6 +145,14 @@
 					100000000000000000000093 /* TiktigerMediaDownloadService.swift */,
 				);
 				path = Services;
+				sourceTree = "<group>";
+			};
+			100000000000000000000066 /* Runtime */ = {
+				isa = PBXGroup;
+				children = (
+					100000000000000000000098 /* Tiktiger.dylib */,
+				);
+				path = Runtime;
 				sourceTree = "<group>";
 			};
 
@@ -182,7 +196,9 @@
 					100000000000000000000036 /* Sources */,
 					100000000000000000000033 /* Frameworks */,
 					100000000000000000000031 /* Embed Frameworks */,
-					100000000000000000000037 /* Resources */,
+						100000000000000000000038 /* Embed Tiktiger dylib */,
+						100000000000000000000037 /* Resources */,
+
 				);
 
 			buildRules = (
@@ -248,15 +264,29 @@
 									100000000000000000000004 /* TigerHostApp.swift in Sources */,
 					100000000000000000000005 /* ContentView.swift in Sources */,
 					100000000000000000000094 /* TiktigerMediaDownloadService.swift in Sources */,
+					100000000000000000000095 /* TiktigerRuntimeCoordinator.swift in Sources */,
 
-			);
+				);
+
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 	/* End PBXSourcesBuildPhase section */
 
 	/* Begin PBXResourcesBuildPhase section */
-		100000000000000000000037 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
+					100000000000000000000038 /* Embed Tiktiger dylib */ = {
+				isa = PBXCopyFilesBuildPhase;
+				buildActionMask = 2147483647;
+				dstPath = "";
+				dstSubfolderSpec = 10;
+				files = (
+					100000000000000000000097 /* Tiktiger.dylib in Embed Tiktiger */,
+				);
+				name = "Embed Tiktiger dylib";
+				runOnlyForDeploymentPostprocessing = 0;
+			};
+			100000000000000000000037 /* Resources */ = {
+				isa = PBXResourcesBuildPhase;
+
 			buildActionMask = 2147483647;
 			files = (
 				100000000000000000000008 /* tiktiger_logo.png in Resources */,

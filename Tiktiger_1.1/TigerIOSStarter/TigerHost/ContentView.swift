@@ -87,6 +87,7 @@ private let tiktigerSections: [FeatureSection] = [
 ]
 
 struct ContentView: View {
+    @StateObject private var runtime = TiktigerRuntimeCoordinator.shared
     @State private var enabled = TigerManager.shared.isEnabled
     @State private var showDownloadCenter = false
     @State private var showDiagnostics = false
@@ -101,6 +102,7 @@ struct ContentView: View {
                 VStack(spacing: 18) {
                     header
                     statusCard
+                    runtimeCard
                     quickActions
                     sections
                     developerCard
@@ -109,6 +111,12 @@ struct ContentView: View {
                 .padding(.vertical, 14)
             }
         }
+        }
+        .onAppear {
+            runtime.start()
+            DispatchQueue.main.async {
+                runtime.markPresented()
+            }
         }
         .preferredColorScheme(.dark)
         .tint(TiktigerTheme.cyan)
@@ -180,6 +188,46 @@ struct ContentView: View {
         .background(.ultraThinMaterial.opacity(0.72))
         .overlay(RoundedRectangle(cornerRadius: 24).stroke(.white.opacity(0.14), lineWidth: 1))
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
+
+    private var runtimeCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("Runtime Integration", systemImage: "bolt.horizontal.circle.fill")
+                    .font(.headline)
+                Spacer()
+                Text(runtime.overallState)
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(runtime.overallState == "VERIFIED" ? .green : .orange)
+            }
+            runtimeRow("dylib loaded", runtime.dylibLoaded)
+            runtimeRow("initializer executed", runtime.initializerExecuted)
+            runtimeRow("core started", runtime.coreStarted)
+            runtimeRow("feature registry", runtime.featureRegistryReady)
+            runtimeRow("UI registered", runtime.uiRegistered)
+            runtimeRow("UI presented", runtime.uiPresented)
+            if !runtime.lastError.isEmpty {
+                Text(runtime.lastError)
+                    .font(.caption)
+                    .foregroundColor(.red)
+            }
+        }
+        .padding(16)
+        .background(Color.black.opacity(0.24))
+        .overlay(RoundedRectangle(cornerRadius: 18).stroke(.white.opacity(0.12), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    private func runtimeRow(_ title: String, _ value: Bool) -> some View {
+        HStack {
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.white.opacity(0.72))
+            Spacer()
+            Text(value ? "VERIFIED" : "FAILED")
+                .font(.caption.weight(.bold))
+                .foregroundColor(value ? .green : .red)
+        }
     }
 
     private var quickActions: some View {
@@ -460,7 +508,12 @@ private struct TiktigerFeatureRow: View {
     var body: some View {
         Toggle(isOn: Binding(get: { enabled }, set: { value in
             let protectedFeature = feature.id == "lockChats" || feature.id == "lockFavorites"
+            let runtime = TiktigerRuntimeCoordinator.shared
+            let registryOwnsFeature = runtime.registeredFeatureKeys.contains(feature.id)
             guard value && protectedFeature else {
+                if registryOwnsFeature && !runtime.setFeature(feature.id, enabled: value) {
+                    return
+                }
                 enabled = value
                 TigerManager.shared.setFeatureEnabled(value, forKey: feature.id)
                 return
@@ -468,6 +521,10 @@ private struct TiktigerFeatureRow: View {
             TiktigerLocalAuth.authenticate { success in
                 DispatchQueue.main.async {
                     guard success else { return }
+                    let runtime = TiktigerRuntimeCoordinator.shared
+                    if runtime.registeredFeatureKeys.contains(feature.id) && !runtime.setFeature(feature.id, enabled: true) {
+                        return
+                    }
                     enabled = true
                     TigerManager.shared.setFeatureEnabled(true, forKey: feature.id)
                 }
@@ -682,6 +739,7 @@ private struct TiktigerDiagnostic: Identifiable {
 
 private struct DiagnosticsView: View {
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var runtime = TiktigerRuntimeCoordinator.shared
 
     private let modules: [TiktigerDiagnostic] = [
         TiktigerDiagnostic(id: "settings", title: "Settings UI", state: "IMPLEMENTED BUT NOT TESTED", icon: "checkmark.circle.fill", color: .orange),
@@ -701,6 +759,24 @@ private struct DiagnosticsView: View {
                     LabeledContent("Core", value: TigerManager.shared.version)
                     LabeledContent("State", value: TigerManager.shared.statusText())
                     LabeledContent("Environment", value: "iOS Host / Framework")
+                }
+                Section("Runtime Integration") {
+                    LabeledContent("Overall", value: runtime.overallState)
+                    LabeledContent("DYLIB Loaded", value: runtime.dylibLoaded ? "VERIFIED" : "FAILED")
+                    LabeledContent("Initializer", value: runtime.initializerExecuted ? "VERIFIED" : "FAILED")
+                    LabeledContent("Core Started", value: runtime.coreStarted ? "VERIFIED" : "FAILED")
+                    LabeledContent("Feature Registry", value: runtime.featureRegistryReady ? "VERIFIED" : "FAILED")
+                    LabeledContent("Registry Keys", value: "\(runtime.registeredFeatureKeys.count)")
+                    LabeledContent("UI Registered", value: runtime.uiRegistered ? "VERIFIED" : "FAILED")
+                    LabeledContent("UI Presented", value: runtime.uiPresented ? "VERIFIED" : "FAILED")
+                    if !runtime.lastError.isEmpty {
+                        Text(runtime.lastError)
+                            .font(.footnote)
+                            .foregroundColor(.red)
+                    }
+                    Text(runtime.diagnosticsJSON)
+                        .font(.system(.caption2, design: .monospaced))
+                        .textSelection(.enabled)
                 }
                 Section("Modules") {
                     ForEach(modules) { module in

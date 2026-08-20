@@ -46,9 +46,22 @@
 
 السكربت يبني Release لـarm64 باستخدام `iphoneos`، ينسخ الناتج إلى `BuildOutput/Tiktiger.dylib`، ثم يشغل `Scripts/verify_dylib.sh`. التحقق fail-closed ويوقف العملية إذا غابت أدوات `file` أو `lipo` أو `otool` أو `nm`، ثم يراجع Mach-O وarm64 و`MH_DYLIB` و`@rpath/Tiktiger.dylib` والرموز العامة. تُحفظ النتائج في `BuildLogs/latest-build.log` و`BuildLogs/verification.txt` و`BuildLogs/Tiktiger.dylib.sha256`.
 
+## Runtime Verification
+
+وجود `Tiktiger.dylib` داخل IPA لا يثبت أن dyld حمّلها أو أن initializer نُفذ. يحتوي `TiktigerRuntime.c` الآن على constructor وmarkers صريحة تسجل:
+
+- `dylib_loaded`
+- `initializer_executed`
+- `core_started`
+- `feature_registry_ready`
+- `ui_registered`
+- `ui_presented`
+
+كما توفر Public API الدوال `tt_runtime_diagnostics_json` وprobes منفصلة لكل milestone. يجب أن يستدعي المضيف `initializeRuntime` عند بدء التكامل، ثم `markUIRegistered` بعد تسجيل طبقة العرض، و`markUIPresented` بعد ظهورها فعليًا. لا تعتبر الحالة VERIFIED إلا إذا ظهر log `[TiktigerRuntime]` في Console واحتوى JSON على القيمة `1` للمرحلة المطلوبة.
+
 ## ما يلزم للمضيف
 
-الـdylib لا تقوم وحدها بعرض SwiftUI أو طلب صلاحية Photos أو تشغيل Face ID؛ هذه وظائف UIKit/SwiftUI/Photos/AVFoundation/LocalAuthentication داخل التطبيق المضيف. يوجد في المضيف Service منفصل للتنزيل المباشر عبر HTTPS مع cancellation وretry/history، بينما يبقى Adapter Objective-C جسرًا رفيعًا إلى Public API ويحتاج ربطًا صريحًا في Target مصرح به.
+الـdylib لا تقوم وحدها بعرض SwiftUI أو طلب صلاحية Photos أو تشغيل Face ID؛ هذه وظائف UIKit/SwiftUI/Photos/AVFoundation/LocalAuthentication داخل التطبيق المضيف. يوجد في المضيف Service منفصل للتنزيل المباشر عبر HTTPS مع cancellation وretry/history، بينما يبقى Adapter Objective-C جسرًا رفيعًا إلى Public API ويحتاج ربطًا صريحًا في Target مصرح به. لا يوجد constructor في Adapter نفسه؛ constructor الموجود داخل dylib لا يمكنه تسجيل UI ما لم يربط المضيف Adapter ويستدعي milestones.
 
 مزود تحويل رابط المنشور إلى رابط وسائط لم يُضمّن كـendpoint سري. يجب توفير Provider مصرح أو API خاص بك عبر Adapter، وعدم وضع رموز أو مفاتيح وصول داخل المصدر.
 

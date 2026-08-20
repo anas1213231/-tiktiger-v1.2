@@ -13,6 +13,11 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setDownloadStage:(TTDownloadStage)stage;
 - (NSString *)downloadStageName;
 - (NSString *)diagnosticsJSON;
+- (void)initializeRuntime;
+- (void)markUIRegistered;
+- (void)markUIPresented;
+- (NSString *)runtimeDiagnosticsJSON;
+- (BOOL)runtimeDylibLoaded;
 
 @end
 

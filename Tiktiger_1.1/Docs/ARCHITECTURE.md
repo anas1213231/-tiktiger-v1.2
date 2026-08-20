@@ -31,9 +31,24 @@ Suggested boundaries:
 
 ## Layer 4 — Host Integration
 
-Host-specific glue must be isolated from reusable library logic. The handoff includes `Integration/TiktigerHostAdapter.h` and `.m` as a small Objective-C example that wraps URL validation, feature state, safe filenames, download stages, and diagnostics.
+Host-specific glue must be isolated from reusable library logic. The handoff includes `Integration/TiktigerHostAdapter.h` and `.m` as a small Objective-C contract that wraps URL validation, feature state, safe filenames, download stages, runtime milestones, and diagnostics.
 
-The Adapter is where SwiftUI, URLSession, Photos, AVFoundation, LocalAuthentication, and the authorized host API are coordinated. Do not couple Tiktiger core logic to one ViewController/View, and do not place credentials or private endpoints inside the dylib.
+The current `TigerHost` target also contains `TiktigerRuntimeCoordinator.swift`. Its verified call chain is designed as:
+
+```text
+TigerHost ContentView.onAppear
+  -> TiktigerRuntimeCoordinator.start()
+  -> dlopen(Tiktiger.dylib, RTLD_NOW | RTLD_GLOBAL)
+  -> dlsym(tt_runtime_initialize)
+  -> dlsym(tt_feature_count / tt_feature_key_at)
+  -> tt_runtime_mark_ui_registered()
+  -> ContentView presentation
+  -> tt_runtime_mark_ui_presented()
+```
+
+The Host PBX target embeds the real binary at `TigerHost/Runtime/Tiktiger.dylib` into `Frameworks` with `CodeSignOnCopy`. The source tree intentionally does not contain a fake binary. A real iOS arm64 binary and matching signing setup are required before Host build/runtime verification.
+
+The Adapter remains the Objective-C option for hosts that prefer a typed bridge. The Adapter is where SwiftUI, URLSession, Photos, AVFoundation, LocalAuthentication, and the authorized host API are coordinated. Do not couple Tiktiger core logic to one ViewController/View, and do not place credentials or private endpoints inside the dylib.
 
 ## Threading
 

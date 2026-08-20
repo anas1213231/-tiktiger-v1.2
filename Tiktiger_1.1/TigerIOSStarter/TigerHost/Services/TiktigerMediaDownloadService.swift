@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 import Foundation
 import AVFoundation
 import Photos
@@ -108,7 +109,7 @@ final class TiktigerMediaDownloadService: ObservableObject {
         lastFileURL = nil
         isBusy = true
         stateColor = .orange
-        stage = "Validating URL"
+        updateStage("Validating URL", runtimeStage: 1)
 
         downloadTask = Task { [weak self] in
             guard let self = self else { return }
@@ -137,7 +138,7 @@ final class TiktigerMediaDownloadService: ObservableObject {
         activeExportSession = nil
         guard !silent, isBusy else { return }
         isBusy = false
-        stage = "Cancelled"
+        updateStage("Cancelled", runtimeStage: 7)
         stateColor = .orange
     }
 
@@ -154,7 +155,7 @@ final class TiktigerMediaDownloadService: ObservableObject {
             }
             let request = try provider.request(for: url)
             try Task.checkCancellation()
-            stage = "Downloading"
+            updateStage("Downloading", runtimeStage: 2)
 
             let (temporaryURL, response) = try await URLSession.shared.download(for: request)
             try Task.checkCancellation()
@@ -179,7 +180,7 @@ final class TiktigerMediaDownloadService: ObservableObject {
                 }
             }
 
-            stage = "Validating file"
+            updateStage("Validating file", runtimeStage: 1)
             let destination = FileManager.default.temporaryDirectory
                 .appendingPathComponent("Tiktiger-\(UUID().uuidString).\(extensionName)")
             destinationURL = destination
@@ -189,14 +190,14 @@ final class TiktigerMediaDownloadService: ObservableObject {
             if mode == "audio" {
                 let output = try await extractAudio(from: destination)
                 lastFileURL = output
-                stage = "Audio ready"
+                updateStage("Audio ready", runtimeStage: 5)
                 photoStatus = "Ready to share"
                 stateColor = .green
                 isBusy = false
                 recordSuccess(url: url, mode: mode, filename: output.lastPathComponent)
             } else {
                 try await saveToPhotos(destination, isVideo: isVideo)
-                stage = "Completed"
+                updateStage("Completed", runtimeStage: 5)
                 photoStatus = "Saved"
                 stateColor = .green
                 isBusy = false
@@ -205,7 +206,7 @@ final class TiktigerMediaDownloadService: ObservableObject {
             downloadTask = nil
         } catch is CancellationError {
             isBusy = false
-            stage = "Cancelled"
+            updateStage("Cancelled", runtimeStage: 7)
             stateColor = .orange
             downloadTask = nil
         } catch {
@@ -215,7 +216,8 @@ final class TiktigerMediaDownloadService: ObservableObject {
 
     private func extractAudio(from videoURL: URL) async throws -> URL {
         try Task.checkCancellation()
-        stage = "Extracting Audio"
+                    updateStage("Extracting Audio", runtimeStage: 3)
+
         let asset = AVAsset(url: videoURL)
         guard !asset.tracks(withMediaType: .audio).isEmpty else {
             try? FileManager.default.removeItem(at: videoURL)
@@ -255,7 +257,7 @@ final class TiktigerMediaDownloadService: ObservableObject {
         }
 
         try Task.checkCancellation()
-        stage = "Saving to Photos"
+        updateStage("Saving to Photos", runtimeStage: 4)
         photoStatus = "Saving"
         try await withCheckedThrowingContinuation { continuation in
             PHPhotoLibrary.shared().performChanges({
@@ -309,9 +311,14 @@ final class TiktigerMediaDownloadService: ObservableObject {
         return components.string ?? "https://[redacted]"
     }
 
+    private func updateStage(_ value: String, runtimeStage: Int32) {
+        stage = value
+        TiktigerRuntimeCoordinator.shared.setDownloadStage(runtimeStage)
+    }
+
     private func fail(_ message: String) {
         lastError = message
-        stage = message
+        updateStage(message, runtimeStage: 6)
         stateColor = .red
         isBusy = false
         downloadTask = nil

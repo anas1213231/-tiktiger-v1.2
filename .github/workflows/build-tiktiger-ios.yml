@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - 'Tiktiger_1.1/Xcode_Dylib_Project/**'
+      - 'Tiktiger_1.1/TigerIOSStarter/**'
       - '.github/workflows/build-tiktiger-ios.yml'
 
 permissions:
@@ -67,6 +68,48 @@ jobs:
           cp -f "$DYLIB_CANDIDATE" "$OUTPUT_DIR/Tiktiger.dylib"
           test -s "$OUTPUT_DIR/Tiktiger.dylib"
 
+      - name: Wire real dylib into TigerHost
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROJECT_DIR="$GITHUB_WORKSPACE/Tiktiger_1.1/Xcode_Dylib_Project"
+          HOST_DIR="$GITHUB_WORKSPACE/Tiktiger_1.1/TigerIOSStarter"
+          OUTPUT="$PROJECT_DIR/BuildOutput/Tiktiger.dylib"
+          RUNTIME_DIR="$HOST_DIR/TigerHost/Runtime"
+          mkdir -p "$RUNTIME_DIR"
+          cp -f "$OUTPUT" "$RUNTIME_DIR/Tiktiger.dylib"
+          test -s "$RUNTIME_DIR/Tiktiger.dylib"
+          file "$RUNTIME_DIR/Tiktiger.dylib"
+
+      - name: Build TigerHost with embedded Tiktiger.dylib
+        shell: bash
+        run: |
+          set -euo pipefail
+          HOST_DIR="$GITHUB_WORKSPACE/Tiktiger_1.1/TigerIOSStarter"
+          HOST_PROJECT="$HOST_DIR/TigerIOSStarter.xcodeproj"
+          HOST_DERIVED="$HOST_DIR/Build/.DerivedData"
+          rm -rf "$HOST_DERIVED"
+          xcodebuild \
+            -project "$HOST_PROJECT" \
+            -scheme TigerHost \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$HOST_DERIVED" \
+            ARCHS=arm64 \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            clean build 2>&1 | tee "$GITHUB_WORKSPACE/host_build.log"
+
+          grep -q 'BUILD SUCCEEDED' "$GITHUB_WORKSPACE/host_build.log"
+          HOST_APP="$(find "$HOST_DERIVED/Build/Products" -type d -path '*/Release-iphoneos/TigerHost.app' -print -quit)"
+          test -n "$HOST_APP"
+          test -f "$HOST_APP/Frameworks/Tiktiger.dylib"
+          mkdir -p "$GITHUB_WORKSPACE/host_app"
+          ditto "$HOST_APP" "$GITHUB_WORKSPACE/host_app/TigerHost.app"
+          printf 'Host app: %s\nEmbedded dylib: %s\n' "$HOST_APP" "$HOST_APP/Frameworks/Tiktiger.dylib" > "$GITHUB_WORKSPACE/host_runtime_embedding.txt"
+
       - name: Verify Mach-O, architecture, install name, symbols, and SHA-256
         shell: bash
         run: |
@@ -106,7 +149,7 @@ jobs:
           done
 
           {
-            echo 'BUILD STATUS: BUILD SUCCEEDED and binary verification passed'
+            echo 'BUILD STATUS: DYLIB BUILD SUCCEEDED; HOST BUILD SUCCEEDED; binary verification passed'
             echo "macOS Version: $MACOS_VERSION"
             echo "Xcode Version: $XCODE_VERSION"
             echo "iOS SDK Version: $IOS_SDK_VERSION"
@@ -128,6 +171,9 @@ jobs:
             printf '%s\n' "$SYMBOL_RESULT"
             echo 'SHA-256:'
             printf '%s\n' "$SHA256_RESULT"
+            echo 'Host build status: BUILD SUCCEEDED'
+            echo 'Host runtime embedding:'
+            cat "$GITHUB_WORKSPACE/host_runtime_embedding.txt"
           } > "$VERIFICATION"
 
           test -s "$VERIFICATION"
@@ -137,8 +183,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Tiktiger-1.1-ios-arm64-${{ github.sha }}
-          if-no-files-found: warn
+          if-no-files-found: error
           path: |
             Tiktiger_1.1/Xcode_Dylib_Project/BuildOutput/Tiktiger.dylib
             build.log
             verification.txt
+            host_build.log
+            host_runtime_embedding.txt
+            host_app/TigerHost.app

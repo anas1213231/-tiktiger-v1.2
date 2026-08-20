@@ -42,4 +42,24 @@
     return [NSString stringWithUTF8String:tt_diagnostics_json()] ?: @"{}";
 }
 
+- (void)initializeRuntime {
+    tt_runtime_initialize();
+}
+
+- (void)markUIRegistered {
+    tt_runtime_mark_ui_registered();
+}
+
+- (void)markUIPresented {
+    tt_runtime_mark_ui_presented();
+}
+
+- (NSString *)runtimeDiagnosticsJSON {
+    return [NSString stringWithUTF8String:tt_runtime_diagnostics_json()] ?: @"{}";
+}
+
+- (BOOL)runtimeDylibLoaded {
+    return tt_runtime_dylib_loaded() == 1;
+}
+
 @end
