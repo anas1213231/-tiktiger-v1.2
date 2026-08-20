@@ -329,7 +329,10 @@ jobs:
           test -d "$IPA_ROOT/Payload/TiktigerHost.app/Frameworks"
           test -s "$IPA_ROOT/Payload/TiktigerHost.app/Frameworks/Tiktiger.dylib"
           test "$(shasum -a 256 "$IPA_ROOT/Payload/TiktigerHost.app/Frameworks/Tiktiger.dylib" | awk '{print $1}')" = "$EXPECTED_SHA"
-          (cd "$IPA_ROOT" && zip -qry "$IPA_PATH" Payload)
+          echo "IPA STAGING ROOT: $IPA_ROOT"
+          find "$IPA_ROOT/Payload" -maxdepth 2 -type d -print
+          (cd "$IPA_ROOT" && zip -r "$IPA_PATH" Payload)
+          test -f "$IPA_PATH"
           test -s "$IPA_PATH"
           rm -rf "$IPA_ROOT"
           test -d "$PACKAGE_DIR"
