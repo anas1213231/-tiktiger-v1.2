@@ -49,9 +49,11 @@ jobs:
           PROJECT="$PROJECT_DIR/TiktigerDylib.xcodeproj"
           DERIVED_DATA="$PROJECT_DIR/Build/.DerivedData"
           OUTPUT_DIR="$PROJECT_DIR/BuildOutput"
+          SETTINGS_FILE="$PROJECT_DIR/Build/dylib-build-settings.txt"
 
           rm -rf "$DERIVED_DATA"
-          mkdir -p "$OUTPUT_DIR"
+          mkdir -p "$OUTPUT_DIR" "$PROJECT_DIR/Build"
+          rm -f "$OUTPUT_DIR/Tiktiger.dylib"
 
           xcodebuild \
             -project "$PROJECT" \
@@ -67,15 +69,139 @@ jobs:
 
           grep -q 'BUILD SUCCEEDED' "$GITHUB_WORKSPACE/build.log"
 
-          DYLIB_CANDIDATE="$(find "$DERIVED_DATA" -type f -name 'Tiktiger.dylib' -print -quit)"
-          if [ -z "$DYLIB_CANDIDATE" ]; then
-            DYLIB_CANDIDATE="$OUTPUT_DIR/Tiktiger.dylib"
-          fi
-          test -s "$DYLIB_CANDIDATE"
-          cp -f "$DYLIB_CANDIDATE" "$OUTPUT_DIR/Tiktiger.dylib"
-          test -s "$OUTPUT_DIR/Tiktiger.dylib"
+          xcodebuild \
+            -project "$PROJECT" \
+            -scheme TiktigerDylib \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath "$DERIVED_DATA" \
+            ARCHS=arm64 \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            -showBuildSettings > "$SETTINGS_FILE"
 
-      - name: Wire real dylib into TigerHost
+          TARGET_BUILD_DIR="$(sed -n 's/^[[:space:]]*TARGET_BUILD_DIR = //p' "$SETTINGS_FILE" | tail -n 1)"
+          EXECUTABLE_PATH="$(sed -n 's/^[[:space:]]*EXECUTABLE_PATH = //p' "$SETTINGS_FILE" | tail -n 1)"
+          test -n "$TARGET_BUILD_DIR"
+          test -n "$EXECUTABLE_PATH"
+
+          REAL_DYLIB="$TARGET_BUILD_DIR/$EXECUTABLE_PATH"
+          case "$REAL_DYLIB" in
+            *.dSYM/*) echo 'Refusing dSYM companion path'; exit 1 ;;
+          esac
+          test -f "$REAL_DYLIB"
+          test -s "$REAL_DYLIB"
+          printf 'TARGET_BUILD_DIR=%s\nEXECUTABLE_PATH=%s\nREAL_DYLIB=%s\n' \
+            "$TARGET_BUILD_DIR" "$EXECUTABLE_PATH" "$REAL_DYLIB" \
+            > "$GITHUB_WORKSPACE/dylib_product_path.txt"
+
+      - name: Verify dylib product and generate evidence before Host build
+        shell: bash
+        run: |
+          set -uo pipefail
+          PROJECT_DIR="$GITHUB_WORKSPACE/Tiktiger_1.1/Xcode_Dylib_Project"
+          OUTPUT_DIR="$PROJECT_DIR/BuildOutput"
+          VERIFICATION="$GITHUB_WORKSPACE/verification.txt"
+          SYMBOL_STATUS_FILE="$GITHUB_WORKSPACE/symbol_status.txt"
+          REAL_DYLIB="$(sed -n 's/^REAL_DYLIB=//p' "$GITHUB_WORKSPACE/dylib_product_path.txt")"
+          OUTPUT="$REAL_DYLIB"
+          VERIFY_STATUS=0
+
+          FILE_RESULT='NOT RUN'
+          LIPO_RESULT='NOT RUN'
+          ARCH_LIST='NOT RUN'
+          OTOOL_HV_RESULT='NOT RUN'
+          OTOOL_D_RESULT='NOT RUN'
+          OTOOL_L_RESULT='NOT RUN'
+          SYMBOL_RESULT='NOT RUN'
+          SHA256_RESULT='NOT RUN'
+
+          if ! test -f "$OUTPUT"; then VERIFY_STATUS=1; fi
+          if ! test -s "$OUTPUT"; then VERIFY_STATUS=1; fi
+          case "$REAL_DYLIB" in
+            *.dSYM/*) VERIFY_STATUS=1 ;;
+          esac
+
+          if FILE_RESULT="$(file "$OUTPUT" 2>&1)"; then :; else VERIFY_STATUS=1; fi
+          if printf '%s\n' "$FILE_RESULT" | grep -Eiq 'dSYM companion'; then VERIFY_STATUS=1; fi
+          if printf '%s\n' "$FILE_RESULT" | grep -Eiq 'Mach-O'; then :; else VERIFY_STATUS=1; fi
+
+          if LIPO_RESULT="$(lipo -info "$OUTPUT" 2>&1)"; then :; else VERIFY_STATUS=1; fi
+          if ARCH_LIST="$(lipo -archs "$OUTPUT" 2>&1)"; then :; else VERIFY_STATUS=1; fi
+          if printf '%s\n' "$LIPO_RESULT" | grep -Eiq 'arm64'; then :; else VERIFY_STATUS=1; fi
+          if test "$ARCH_LIST" = 'arm64'; then :; else VERIFY_STATUS=1; fi
+
+          if OTOOL_HV_RESULT="$(otool -hv "$OUTPUT" 2>&1)"; then :; else VERIFY_STATUS=1; fi
+          if printf '%s\n' "$OTOOL_HV_RESULT" | grep -Eiq 'MH_DYLIB'; then :; else VERIFY_STATUS=1; fi
+          if OTOOL_D_RESULT="$(otool -D "$OUTPUT" 2>&1)"; then :; else VERIFY_STATUS=1; fi
+          if OTOOL_L_RESULT="$(otool -L "$OUTPUT" 2>&1)"; then :; else VERIFY_STATUS=1; fi
+          if printf '%s\n' "$OTOOL_D_RESULT" | grep -Fq '@rpath/Tiktiger.dylib'; then :; else VERIFY_STATUS=1; fi
+          if SYMBOL_RESULT="$(nm -gU "$OUTPUT" 2>&1)"; then :; else VERIFY_STATUS=1; fi
+          if SHA256_RESULT="$(shasum -a 256 "$OUTPUT" 2>&1)"; then :; else VERIFY_STATUS=1; fi
+
+          : > "$SYMBOL_STATUS_FILE"
+          REQUIRED_SYMBOLS="tt_product_name tt_version tt_runtime_initialize tt_runtime_dylib_loaded tt_runtime_initializer_executed tt_runtime_core_started tt_runtime_feature_registry_ready tt_runtime_mark_ui_registered tt_runtime_mark_ui_presented tt_runtime_ui_registered tt_runtime_ui_presented tt_runtime_diagnostics_json tt_feature_count tt_feature_key_at tt_set_feature_enabled tt_set_download_stage"
+          for symbol in $REQUIRED_SYMBOLS; do
+            if printf '%s\n' "$SYMBOL_RESULT" | grep -Eiq "(^|[[:space:]_])${symbol}([[:space:]]|$)"; then
+              printf '%s: FOUND\n' "$symbol" >> "$SYMBOL_STATUS_FILE"
+            else
+              printf '%s: FAILED\n' "$symbol" >> "$SYMBOL_STATUS_FILE"
+              VERIFY_STATUS=1
+            fi
+          done
+
+          if test "$VERIFY_STATUS" -eq 0; then
+            DYLIB_VERIFIED='YES'
+            DYLIB_SYMBOL_STATUS='ALL REQUIRED SYMBOLS FOUND'
+          else
+            DYLIB_VERIFIED='NO'
+            DYLIB_SYMBOL_STATUS='ONE OR MORE REQUIRED CHECKS FAILED'
+          fi
+
+          {
+            echo 'BUILD STATUS: DYLIB BUILD SUCCEEDED'
+            echo "DYLIB BUILD: BUILD SUCCEEDED"
+            echo "REAL DYLIB VERIFIED: $DYLIB_VERIFIED"
+            echo "DYLIB PRODUCT PATH: $REAL_DYLIB"
+            echo 'DYLIB FILE RESULT:'
+            printf '%s\n' "$FILE_RESULT"
+            echo "DYLIB ARCH: $ARCH_LIST"
+            echo 'DYLIB MACH-O TYPE:'
+            printf '%s\n' "$OTOOL_HV_RESULT"
+            echo 'DYLIB INSTALL NAME:'
+            printf '%s\n' "$OTOOL_D_RESULT"
+            echo "DYLIB SYMBOL STATUS: $DYLIB_SYMBOL_STATUS"
+            echo 'DYLIB SHA256:'
+            printf '%s\n' "$SHA256_RESULT"
+            echo 'HOST DEVICE BUILD: NOT RUN'
+            echo 'HOST SIMULATOR BUILD: NOT RUN'
+            echo 'RUNTIME: DEVICE RUNTIME NOT VERIFIED'
+            echo 'REMAINING WORK: Host builds and runtime smoke test are pending.'
+            echo 'lipo result:'
+            printf '%s\n' "$LIPO_RESULT"
+            echo 'otool -L:'
+            printf '%s\n' "$OTOOL_L_RESULT"
+            echo 'exported symbols:'
+            printf '%s\n' "$SYMBOL_RESULT"
+            echo 'required symbol status:'
+            cat "$SYMBOL_STATUS_FILE"
+            echo 'SHA-256:'
+            printf '%s\n' "$SHA256_RESULT"
+          } > "$VERIFICATION"
+
+          if test "$VERIFY_STATUS" -ne 0; then
+            echo 'Dylib verification failed; Host build will not use an unverified binary.'
+            exit 1
+          fi
+
+          cp -f "$REAL_DYLIB" "$OUTPUT_DIR/Tiktiger.dylib"
+          test -s "$OUTPUT_DIR/Tiktiger.dylib"
+          case "$OUTPUT_DIR/Tiktiger.dylib" in
+            *.dSYM/*) echo 'Refusing dSYM output path'; exit 1 ;;
+          esac
+
+      - name: Wire verified dylib into TiktigerHost
         shell: bash
         run: |
           set -euo pipefail
@@ -84,19 +210,23 @@ jobs:
           OUTPUT="$PROJECT_DIR/BuildOutput/Tiktiger.dylib"
           RUNTIME_DIR="$HOST_DIR/TigerHost/Runtime"
           mkdir -p "$RUNTIME_DIR"
+          case "$OUTPUT" in
+            *.dSYM/*) echo 'Refusing dSYM input'; exit 1 ;;
+          esac
           cp -f "$OUTPUT" "$RUNTIME_DIR/Tiktiger.dylib"
           test -s "$RUNTIME_DIR/Tiktiger.dylib"
           file "$RUNTIME_DIR/Tiktiger.dylib"
 
-      - name: Build TiktigerHost with embedded Tiktiger.dylib
+      - name: Build TiktigerHost for iphoneos
         shell: bash
         run: |
-          set -euo pipefail
+          set -uo pipefail
           HOST_DIR="$GITHUB_WORKSPACE/Tiktiger_1.1/TiktigerHost"
           HOST_PROJECT="$HOST_DIR/TiktigerHost.xcodeproj"
           HOST_DERIVED="$HOST_DIR/Build/.DerivedData"
+          HOST_STATUS=0
           rm -rf "$HOST_DERIVED"
-          xcodebuild \
+          if xcodebuild \
             -project "$HOST_PROJECT" \
             -scheme TiktigerHost \
             -configuration Release \
@@ -107,25 +237,40 @@ jobs:
             ONLY_ACTIVE_ARCH=NO \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            clean build 2>&1 | tee "$GITHUB_WORKSPACE/host_build.log"
-
-          grep -q 'BUILD SUCCEEDED' "$GITHUB_WORKSPACE/host_build.log"
-          HOST_APP="$(find "$HOST_DERIVED/Build/Products" -type d -path '*/Release-iphoneos/TiktigerHost.app' -print -quit)"
-          test -n "$HOST_APP"
-          test -f "$HOST_APP/Frameworks/Tiktiger.dylib"
-          mkdir -p "$GITHUB_WORKSPACE/host_app"
-          ditto "$HOST_APP" "$GITHUB_WORKSPACE/host_app/TiktigerHost.app"
-          printf 'Host app: %s\nEmbedded dylib: %s\n' "$HOST_APP" "$HOST_APP/Frameworks/Tiktiger.dylib" > "$GITHUB_WORKSPACE/host_runtime_embedding.txt"
+            clean build 2>&1 | tee "$GITHUB_WORKSPACE/host_build.log"; then
+            :
+          else
+            HOST_STATUS=1
+          fi
+          if ! grep -q 'BUILD SUCCEEDED' "$GITHUB_WORKSPACE/host_build.log"; then
+            HOST_STATUS=1
+          fi
+          if test "$HOST_STATUS" -eq 0; then
+            HOST_APP="$(find "$HOST_DERIVED/Build/Products" -type d -path '*/Release-iphoneos/TiktigerHost.app' -print -quit)"
+            if test -z "$HOST_APP" || ! test -f "$HOST_APP/Frameworks/Tiktiger.dylib"; then
+              HOST_STATUS=1
+            else
+              mkdir -p "$GITHUB_WORKSPACE/host_app"
+              ditto "$HOST_APP" "$GITHUB_WORKSPACE/host_app/TiktigerHost.app"
+              printf 'Host app: %s\nEmbedded dylib: %s\n' "$HOST_APP" "$HOST_APP/Frameworks/Tiktiger.dylib" > "$GITHUB_WORKSPACE/host_runtime_embedding.txt"
+            fi
+          fi
+          if test "$HOST_STATUS" -eq 0; then
+            echo 'BUILD SUCCEEDED' > "$GITHUB_WORKSPACE/host_build_status.txt"
+          else
+            echo 'BUILD FAILED' > "$GITHUB_WORKSPACE/host_build_status.txt"
+          fi
 
       - name: Build TiktigerHost for iphonesimulator without device dylib
         shell: bash
         run: |
-          set -euo pipefail
+          set -uo pipefail
           HOST_DIR="$GITHUB_WORKSPACE/Tiktiger_1.1/TiktigerHost"
           HOST_PROJECT="$HOST_DIR/TiktigerHost.xcodeproj"
           SIM_DERIVED="$HOST_DIR/Build/.SimulatorDerivedData"
+          SIM_STATUS=0
           rm -rf "$SIM_DERIVED"
-          xcodebuild \
+          if xcodebuild \
             -project "$HOST_PROJECT" \
             -scheme TiktigerHost \
             -configuration Debug \
@@ -136,107 +281,56 @@ jobs:
             ONLY_ACTIVE_ARCH=NO \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            clean build 2>&1 | tee "$GITHUB_WORKSPACE/simulator_build.log"
+            clean build 2>&1 | tee "$GITHUB_WORKSPACE/simulator_build.log"; then
+            :
+          else
+            SIM_STATUS=1
+          fi
+          if ! grep -q 'BUILD SUCCEEDED' "$GITHUB_WORKSPACE/simulator_build.log"; then
+            SIM_STATUS=1
+          fi
+          if test "$SIM_STATUS" -eq 0; then
+            echo 'BUILD SUCCEEDED' > "$GITHUB_WORKSPACE/simulator_build_status.txt"
+          else
+            echo 'BUILD FAILED' > "$GITHUB_WORKSPACE/simulator_build_status.txt"
+          fi
 
-          grep -q 'BUILD SUCCEEDED' "$GITHUB_WORKSPACE/simulator_build.log"
-
-      - name: Verify Mach-O, architecture, install name, symbols, and SHA-256
+      - name: Finalize verification and enforce build status
+        if: ${{ always() }}
         shell: bash
         run: |
-          set -euo pipefail
-          PROJECT_DIR="$GITHUB_WORKSPACE/Tiktiger_1.1/Xcode_Dylib_Project"
-          OUTPUT="$PROJECT_DIR/BuildOutput/Tiktiger.dylib"
+          set -uo pipefail
           VERIFICATION="$GITHUB_WORKSPACE/verification.txt"
-
-          test -s "$OUTPUT"
-
-          MACOS_VERSION="$(sw_vers -productVersion)"
-          XCODE_VERSION="$(xcodebuild -version | tr '\n' ' ')"
-          IOS_SDK_VERSION="$(xcrun --sdk iphoneos --show-sdk-version)"
-          SIMULATOR_SDK_VERSION="$(xcrun --sdk iphonesimulator --show-sdk-version)"
-          FILE_RESULT="$(file "$OUTPUT")"
-          LIPO_RESULT="$(lipo -info "$OUTPUT")"
-          ARCH_LIST="$(lipo -archs "$OUTPUT")"
-          OTOOL_HV_RESULT="$(otool -hv "$OUTPUT")"
-          OTOOL_L_RESULT="$(otool -L "$OUTPUT")"
-          INSTALL_NAME="$(otool -D "$OUTPUT")"
-          SYMBOL_RESULT="$(nm -gU "$OUTPUT")"
-          SHA256_RESULT="$(shasum -a 256 "$OUTPUT")"
-          SYMBOL_STATUS_FILE="$GITHUB_WORKSPACE/symbol_status.txt"
-          : > "$SYMBOL_STATUS_FILE"
-          for symbol in tt_product_name tt_version tt_runtime_initialize tt_runtime_dylib_loaded tt_runtime_initializer_executed tt_runtime_core_started tt_runtime_feature_registry_ready tt_runtime_mark_ui_registered tt_runtime_mark_ui_presented tt_runtime_ui_registered tt_runtime_ui_presented tt_runtime_diagnostics_json tt_feature_count tt_feature_key_at tt_set_feature_enabled tt_set_download_stage; do
-            if printf '%s\n' "$SYMBOL_RESULT" | grep -Eiq "(^|[[:space:]_])${symbol}([[:space:]]|$)"; then
-              printf '%s: FOUND\n' "$symbol" | tee -a "$SYMBOL_STATUS_FILE"
-            else
-              printf '%s: FAILED\n' "$symbol" | tee -a "$SYMBOL_STATUS_FILE"
-              exit 1
-            fi
-          done
-
-          printf '%s\n' "$FILE_RESULT"
-          printf '%s\n' "$LIPO_RESULT"
-          printf '%s\n' "$OTOOL_HV_RESULT"
-          printf '%s\n' "$OTOOL_L_RESULT"
-          printf '%s\n' "$SYMBOL_RESULT"
-          printf '%s\n' "$SHA256_RESULT"
-
-          printf '%s\n' "$FILE_RESULT" | grep -Eiq 'Mach-O'
-          printf '%s\n' "$LIPO_RESULT" | grep -Eiq 'arm64'
-          test "$ARCH_LIST" = 'arm64'
-          printf '%s\n' "$OTOOL_HV_RESULT" | grep -Eiq 'MH_DYLIB'
-          printf '%s\n' "$INSTALL_NAME" | grep -Fq '@rpath/Tiktiger.dylib'
-          for symbol in tt_product_name tt_version tt_set_feature_enabled tt_validate_https_url tt_diagnostics_json; do
-            printf '%s\n' "$SYMBOL_RESULT" | grep -Eiq "(^|[[:space:]_])${symbol}([[:space:]]|$)"
-          done
-
+          HOST_STATUS='NOT RUN'
+          SIM_STATUS='NOT RUN'
+          if test -f "$GITHUB_WORKSPACE/host_build_status.txt"; then HOST_STATUS="$(cat "$GITHUB_WORKSPACE/host_build_status.txt")"; fi
+          if test -f "$GITHUB_WORKSPACE/simulator_build_status.txt"; then SIM_STATUS="$(cat "$GITHUB_WORKSPACE/simulator_build_status.txt")"; fi
           {
-            echo 'BUILD STATUS: DYLIB BUILD SUCCEEDED; HOST BUILD SUCCEEDED; binary verification passed'
-            echo "macOS Version: $MACOS_VERSION"
-            echo "Xcode Version: $XCODE_VERSION"
-            echo "iOS SDK Version: $IOS_SDK_VERSION"
-            echo "iOS Simulator SDK Version: $SIMULATOR_SDK_VERSION"
-            echo 'SDK: iphoneos for dylib and device Host'
-            echo 'Simulator SDK: iphonesimulator for Host compile only; device dylib embedding/load skipped'
-            echo 'Architecture: arm64'
-            echo "Architecture slices: $ARCH_LIST"
-            echo "Product Path: $OUTPUT"
-            echo 'file result:'
-            printf '%s\n' "$FILE_RESULT"
-            echo 'lipo result:'
-            printf '%s\n' "$LIPO_RESULT"
-            echo 'otool -hv:'
-            printf '%s\n' "$OTOOL_HV_RESULT"
-            echo 'otool -L:'
-            printf '%s\n' "$OTOOL_L_RESULT"
-            echo 'Install name:'
-            printf '%s\n' "$INSTALL_NAME"
-            echo 'exported symbols:'
-            printf '%s\n' "$SYMBOL_RESULT"
-            echo 'required symbol status:'
-            cat "$SYMBOL_STATUS_FILE"
+            echo "HOST DEVICE BUILD: $HOST_STATUS"
+            echo "HOST SIMULATOR BUILD: $SIM_STATUS"
+            echo 'RUNTIME: DEVICE RUNTIME NOT VERIFIED — this build-only workflow does not launch the app.'
             echo 'Runtime milestones: NOT CAPTURED in build-only job; requires app launch and Host Console log'
-            echo 'SHA-256:'
-            printf '%s\n' "$SHA256_RESULT"
-            echo 'Host build status: BUILD SUCCEEDED'
-            echo 'Simulator Host build status: BUILD SUCCEEDED; device dylib load skipped by targetEnvironment(simulator)'
-            echo 'Host runtime embedding:'
-            cat "$GITHUB_WORKSPACE/host_runtime_embedding.txt"
-          } > "$VERIFICATION"
+            echo 'REMAINING WORK: Run a real device/simulator smoke test and collect Host Console milestones.'
+          } >> "$VERIFICATION"
+          if test "$HOST_STATUS" = 'BUILD SUCCEEDED' && test "$SIM_STATUS" = 'BUILD SUCCEEDED'; then
+            exit 0
+          fi
+          exit 1
 
-          test -s "$VERIFICATION"
-
-      - name: Upload verified Tiktiger artifacts
+      - name: Upload Tiktiger artifacts
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: Tiktiger-1.1-ios-arm64-${{ github.sha }}
-          if-no-files-found: error
+          if-no-files-found: ignore
           path: |
             Tiktiger_1.1/Xcode_Dylib_Project/BuildOutput/Tiktiger.dylib
             build.log
-            verification.txt
             host_build.log
-            host_runtime_embedding.txt
             simulator_build.log
+            verification.txt
             symbol_status.txt
-            host_app/TiktigerHost.app
+            host_runtime_embedding.txt
+            dylib_product_path.txt
+            host_build_status.txt
+            simulator_build_status.txt

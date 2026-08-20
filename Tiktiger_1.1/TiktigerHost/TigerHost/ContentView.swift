@@ -762,6 +762,22 @@ private struct TiktigerDiagnostic: Identifiable {
     let color: Color
 }
 
+private struct TiktigerDiagnosticRow: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(title)
+            Spacer(minLength: 12)
+            Text(value)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.trailing)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
 private struct DiagnosticsView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var runtime = TiktigerRuntimeCoordinator.shared
@@ -781,21 +797,21 @@ private struct DiagnosticsView: View {
         NavigationView {
             List {
                 Section("Tiktiger 1.1") {
-                    LabeledContent("Core", value: TigerManager.shared.version)
-                    LabeledContent("State", value: TigerManager.shared.statusText())
-                    LabeledContent("Environment", value: "iOS Host / Framework")
+                    TiktigerDiagnosticRow(title: "Core", value: TigerManager.shared.version)
+                    TiktigerDiagnosticRow(title: "State", value: TigerManager.shared.statusText())
+                    TiktigerDiagnosticRow(title: "Environment", value: "iOS Host / Framework")
                 }
                 Section("Runtime Integration") {
-                    LabeledContent("Overall", value: runtime.overallState)
-                    LabeledContent("Platform", value: runtime.runtimePlatform)
-                    LabeledContent("Loaded Path", value: runtime.dylibPath.isEmpty ? "NONE" : runtime.dylibPath)
-                    LabeledContent("DYLIB Loaded", value: runtime.dylibLoaded ? "VERIFIED" : "FAILED")
-                    LabeledContent("Initializer", value: runtime.initializerExecuted ? "VERIFIED" : "FAILED")
-                    LabeledContent("Core Started", value: runtime.coreStarted ? "VERIFIED" : "FAILED")
-                    LabeledContent("Feature Registry", value: runtime.featureRegistryReady ? "VERIFIED" : "FAILED")
-                    LabeledContent("Registry Keys", value: "\(runtime.registeredFeatureKeys.count)")
-                    LabeledContent("UI Registered", value: runtime.uiRegistered ? "VERIFIED" : "FAILED")
-                    LabeledContent("UI Presented", value: runtime.uiPresented ? "VERIFIED" : "FAILED")
+                    TiktigerDiagnosticRow(title: "Overall", value: runtime.overallState)
+                    TiktigerDiagnosticRow(title: "Platform", value: runtime.runtimePlatform)
+                    TiktigerDiagnosticRow(title: "Loaded Path", value: runtime.dylibPath.isEmpty ? "NONE" : runtime.dylibPath)
+                    TiktigerDiagnosticRow(title: "DYLIB Loaded", value: runtime.dylibLoaded ? "VERIFIED" : "FAILED")
+                    TiktigerDiagnosticRow(title: "Initializer", value: runtime.initializerExecuted ? "VERIFIED" : "FAILED")
+                    TiktigerDiagnosticRow(title: "Core Started", value: runtime.coreStarted ? "VERIFIED" : "FAILED")
+                    TiktigerDiagnosticRow(title: "Feature Registry", value: runtime.featureRegistryReady ? "VERIFIED" : "FAILED")
+                    TiktigerDiagnosticRow(title: "Registry Keys", value: "\(runtime.registeredFeatureKeys.count)")
+                    TiktigerDiagnosticRow(title: "UI Registered", value: runtime.uiRegistered ? "VERIFIED" : "FAILED")
+                    TiktigerDiagnosticRow(title: "UI Presented", value: runtime.uiPresented ? "VERIFIED" : "FAILED")
                     if !runtime.lastError.isEmpty {
                         Text(runtime.lastError)
                             .font(.footnote)
