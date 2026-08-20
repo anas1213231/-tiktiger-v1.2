@@ -1,6 +1,6 @@
 # Tiktiger 1.1 — مشروع iOS
 
-هذا المشروع هو نقطة البداية الفعلية لبناء Tiktiger 1.1 على iOS. يحتوي على هدفين: `TigerCore` كـDynamic Framework مبني لـiPhoneOS، و`TigerHost` كتطبيق iOS تجريبي يربط الـFramework ويعرض لوحة Tiktiger.
+هذا المشروع هو نقطة البداية الفعلية لبناء Tiktiger 1.1 على iOS. يحتوي على هدفين: `TigerCore` كـDynamic Framework مبني لـiPhoneOS، و`TiktigerHost` كتطبيق iOS تجريبي يربط الـFramework ويعرض لوحة Tiktiger.
 
 ## الهوية
 
@@ -8,7 +8,7 @@
 
 ## إعداد البناء الحالي
 
-يستخدم المشروع `SDKROOT = iphoneos` ويدعم `iphoneos` و`iphonesimulator`، والحد الأدنى الحالي هو iOS 15.0. ينتج الهدف `TigerCore` ملف `TigerCore.framework`، بينما ينتج الهدف `TigerHost` تطبيق iOS باسم عرض Tiktiger. قبل التوقيع النهائي يجب تغيير `DEVELOPMENT_TEAM` وBundle ID إلى قيم حساب Apple Developer الفعلية.
+يستخدم المشروع `SDKROOT = iphoneos` ويدعم `iphoneos` و`iphonesimulator`، والحد الأدنى الحالي هو iOS 15.0. ينتج الهدف `TigerCore` ملف `TigerCore.framework`، بينما ينتج الهدف `TiktigerHost` تطبيق iOS باسم عرض Tiktiger. قبل التوقيع النهائي يجب تغيير `DEVELOPMENT_TEAM` وBundle ID إلى قيم حساب Apple Developer الفعلية.
 
 ## الواجهة الموجودة في الإصدار 1.1
 
@@ -18,7 +18,7 @@
 
 ## Runtime Integration
 
-يحتوي Target `TigerHost` الآن على `TiktigerRuntimeCoordinator.swift`، ويضمّن `TigerHost/Runtime/Tiktiger.dylib` داخل `Frameworks` عبر PBX Copy Files phase مع `CodeSignOnCopy`. لا يوجد binary داخل المصدر عمدًا؛ يجب نسخ binary iOS arm64 الحقيقي الناتج من مشروع dylib إلى هذا المسار قبل بناء Host. غياب الملف يجب أن يفشل البناء أو يظهر `DYLIB LOADED = FAILED`، ولا يجوز إنشاء placeholder أو إعادة تسمية binary macOS.
+يحتوي Target `TiktigerHost` الآن على `TiktigerRuntimeCoordinator.swift`، ويضمّن `TigerHost/Runtime/Tiktiger.dylib` داخل `Frameworks` عبر PBX Copy Files phase مع `CodeSignOnCopy`. لا يوجد binary داخل المصدر عمدًا؛ يجب نسخ binary iOS arm64 الحقيقي الناتج من مشروع dylib إلى هذا المسار قبل بناء Host. غياب الملف يجب أن يفشل البناء أو يظهر `DYLIB LOADED = FAILED`، ولا يجوز إنشاء placeholder أو إعادة تسمية binary macOS.
 
 عند بدء `ContentView` يستدعي coordinator `dlopen` ثم `dlsym` على runtime APIs، ويعرض حالات `VERIFIED/FAILED` للتحميل وinitializer وCore وFeature registry وUI registration وUI presentation. مفاتيح الميزات الموجودة في registry تمر إلى `tt_set_feature_enabled`، بينما إعدادات المضيف المحلية تبقى في `TigerManager` ولا تتظاهر بأنها hooks داخل تطبيق آخر.
 
@@ -26,7 +26,7 @@
 
 1. ابنِ `Tiktiger.dylib` الحقيقي على macOS/iPhoneOS.
 2. انسخه إلى `TigerHost/Runtime/Tiktiger.dylib`.
-3. افتح `TigerIOSStarter.xcodeproj`، اختر Scheme `TigerHost`، ثم اختر Simulator أو iPhone حقيقي.
+3. افتح `TiktigerHost.xcodeproj`، اختر Scheme `TiktigerHost`، ثم اختر Simulator أو iPhone حقيقي.
 4. عند استخدام جهاز حقيقي اختر Team صحيحًا وعدّل Bundle ID ووقّع التطبيق والمكتبة وفق إعداداتك.
 5. افتح Diagnostics وتحقق من ظهور `[TiktigerRuntime]` ومن انتقال كل milestone إلى `VERIFIED`.
 

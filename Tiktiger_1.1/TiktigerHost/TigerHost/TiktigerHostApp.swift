@@ -2,7 +2,7 @@ import SwiftUI
 import TigerCore
 
 @main
-struct TiktigerApp: App {
+struct TiktigerHostApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()

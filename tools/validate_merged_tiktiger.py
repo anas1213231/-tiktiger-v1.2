@@ -5,17 +5,9 @@ import re
 
 script_path = Path(__file__).resolve()
 repo_root = script_path.parent.parent
-package_root = repo_root if (repo_root / '01_TigerIOSStarter').exists() else None
-if package_root is not None:
-    HOST = package_root / '01_TigerIOSStarter'
-    HANDOFF = package_root / '02_Tiktiger_Developer_Handoff'
-elif (repo_root / 'Tiktiger_1.1/TigerIOSStarter').exists():
-    HOST = repo_root / 'Tiktiger_1.1/TigerIOSStarter'
-    HANDOFF = repo_root / 'Tiktiger_1.1'
-else:
-    HOST = Path('/home/ubuntu/work/tiktiger/starter/TigerIOSStarter')
-    HANDOFF = Path('/home/ubuntu/work/tiktiger_handoff/starter/Tiktiger_Developer_Handoff')
-HOST_PBX = (HOST / 'TigerIOSStarter.xcodeproj/project.pbxproj').read_text(encoding='utf-8')
+HOST = repo_root / 'Tiktiger_1.1/TiktigerHost'
+HANDOFF = repo_root / 'Tiktiger_1.1'
+HOST_PBX = (HOST / 'TiktigerHost.xcodeproj/project.pbxproj').read_text(encoding='utf-8')
 DY_PBX = (HANDOFF / 'Xcode_Dylib_Project/TiktigerDylib.xcodeproj/project.pbxproj').read_text(encoding='utf-8')
 HOST_VIEW = (HOST / 'TigerHost/ContentView.swift').read_text(encoding='utf-8')
 SERVICE = (HOST / 'TigerHost/Services/TiktigerMediaDownloadService.swift').read_text(encoding='utf-8')
@@ -26,7 +18,7 @@ RUNTIME_C = (HANDOFF / 'Xcode_Dylib_Project/TiktigerDylib/src/TiktigerRuntime.c'
 COORDINATOR = (HOST / 'TigerHost/TiktigerRuntimeCoordinator.swift').read_text(encoding='utf-8')
 
 checks = {
-    'host_target_present': 'name = TigerHost;' in HOST_PBX and 'com.apple.product-type.application' in HOST_PBX,
+    'host_target_present': 'name = TiktigerHost;' in HOST_PBX and 'com.apple.product-type.application' in HOST_PBX,
     'core_target_present': 'name = TigerCore;' in HOST_PBX and 'com.apple.product-type.framework' in HOST_PBX,
     'host_service_in_sources': 'TiktigerMediaDownloadService.swift in Sources' in HOST_PBX and 'path = Services;' in HOST_PBX,
     'host_service_file': (HOST / 'TigerHost/Services/TiktigerMediaDownloadService.swift').exists(),

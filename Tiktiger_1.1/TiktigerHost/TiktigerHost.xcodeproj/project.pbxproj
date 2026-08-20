@@ -10,7 +10,7 @@
 		100000000000000000000001 /* TigerManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000011 /* TigerManager.m */; };
 		100000000000000000000002 /* TigerCore.h in Headers */ = {isa = PBXBuildFile; fileRef = 100000000000000000000012 /* TigerCore.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		100000000000000000000003 /* TigerManager.h in Headers */ = {isa = PBXBuildFile; fileRef = 100000000000000000000013 /* TigerManager.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		100000000000000000000004 /* TigerHostApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000014 /* TigerHostApp.swift */; };
+		100000000000000000000004 /* TiktigerHostApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000014 /* TiktigerHostApp.swift */; };
 		100000000000000000000005 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000015 /* ContentView.swift */; };
 		100000000000000000000006 /* TigerCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 100000000000000000000016 /* TigerCore.framework */; };
 		100000000000000000000007 /* TigerCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 100000000000000000000016 /* TigerCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -51,10 +51,10 @@
 		100000000000000000000011 /* TigerManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TigerManager.m; sourceTree = "<group>"; };
 		100000000000000000000012 /* TigerCore.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TigerCore.h; sourceTree = "<group>"; };
 		100000000000000000000013 /* TigerManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TigerManager.h; sourceTree = "<group>"; };
-		100000000000000000000014 /* TigerHostApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TigerHostApp.swift; sourceTree = "<group>"; };
+		100000000000000000000014 /* TiktigerHostApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TiktigerHostApp.swift; sourceTree = "<group>"; };
 		100000000000000000000015 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		100000000000000000000016 /* TigerCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = TigerCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		100000000000000000000017 /* TigerHost.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TigerHost.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		100000000000000000000017 /* TiktigerHost.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TiktigerHost.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		100000000000000000000018 /* TigerHost.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TigerHost.entitlements; sourceTree = "<group>"; };
 		100000000000000000000019 /* README_AR.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README_AR.md; sourceTree = "<group>"; };
 		100000000000000000000090 /* tiktiger_logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = tiktiger_logo.png; sourceTree = "<group>"; };
@@ -108,7 +108,7 @@
 		100000000000000000000062 /* TigerHost */ = {
 			isa = PBXGroup;
 			children = (
-				100000000000000000000014 /* TigerHostApp.swift */,
+				100000000000000000000014 /* TiktigerHostApp.swift */,
 				100000000000000000000015 /* ContentView.swift */,
 									100000000000000000000018 /* TigerHost.entitlements */,
 					100000000000000000000064 /* Resources */,
@@ -125,7 +125,7 @@
 			isa = PBXGroup;
 			children = (
 				100000000000000000000016 /* TigerCore.framework */,
-				100000000000000000000017 /* TigerHost.app */,
+				100000000000000000000017 /* TiktigerHost.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -189,9 +189,9 @@
 			productReference = 100000000000000000000016 /* TigerCore.framework */;
 			productType = "com.apple.product-type.framework";
 		};
-		100000000000000000000042 /* TigerHost */ = {
+		100000000000000000000042 /* TiktigerHost */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 100000000000000000000072 /* Build configuration list for PBXNativeTarget "TigerHost" */;
+			buildConfigurationList = 100000000000000000000072 /* Build configuration list for PBXNativeTarget "TiktigerHost" */;
 							buildPhases = (
 					100000000000000000000036 /* Sources */,
 					100000000000000000000033 /* Frameworks */,
@@ -206,9 +206,9 @@
 			dependencies = (
 				100000000000000000000022 /* PBXTargetDependency */,
 			);
-			name = TigerHost;
-			productName = TigerHost;
-			productReference = 100000000000000000000017 /* TigerHost.app */;
+			name = TiktigerHost;
+			productName = TiktigerHost;
+			productReference = 100000000000000000000017 /* TiktigerHost.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -229,7 +229,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 100000000000000000000070 /* Build configuration list for PBXProject "TigerIOSStarter" */;
+			buildConfigurationList = 100000000000000000000070 /* Build configuration list for PBXProject "TiktigerHost" */;
 			compatibilityVersion = "Xcode 15.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -243,7 +243,7 @@
 			projectRoot = "";
 			targets = (
 				100000000000000000000041 /* TigerCore */,
-				100000000000000000000042 /* TigerHost */,
+				100000000000000000000042 /* TiktigerHost */,
 			);
 		};
 /* End PBXProject section */
@@ -261,7 +261,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-									100000000000000000000004 /* TigerHostApp.swift in Sources */,
+									100000000000000000000004 /* TiktigerHostApp.swift in Sources */,
 					100000000000000000000005 /* ContentView.swift in Sources */,
 					100000000000000000000094 /* TiktigerMediaDownloadService.swift in Sources */,
 					100000000000000000000095 /* TiktigerRuntimeCoordinator.swift in Sources */,
@@ -450,7 +450,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		100000000000000000000070 /* Build configuration list for PBXProject "TigerIOSStarter" */ = {
+		100000000000000000000070 /* Build configuration list for PBXProject "TiktigerHost" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				100000000000000000000081 /* Debug */,
@@ -468,7 +468,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		100000000000000000000072 /* Build configuration list for PBXNativeTarget "TigerHost" */ = {
+		100000000000000000000072 /* Build configuration list for PBXNativeTarget "TiktigerHost" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				100000000000000000000085 /* Debug */,

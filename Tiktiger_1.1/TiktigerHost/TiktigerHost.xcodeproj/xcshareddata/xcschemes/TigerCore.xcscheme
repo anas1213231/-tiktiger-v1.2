@@ -3,7 +3,7 @@
    <BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES">
       <BuildActionEntries>
          <BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES">
-            <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="100000000000000000000041" BuildableName="TigerCore.framework" BlueprintName="TigerCore" ReferencedContainer="container:TigerIOSStarter.xcodeproj"/>
+            <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="100000000000000000000041" BuildableName="TigerCore.framework" BlueprintName="TigerCore" ReferencedContainer="container:TiktigerHost.xcodeproj"/>
          </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>

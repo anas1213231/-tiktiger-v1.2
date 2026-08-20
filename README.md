@@ -4,7 +4,7 @@
 
 ## البنية
 
-- `Tiktiger_1.1/TigerIOSStarter/`: مشروع iOS المضيف SwiftUI وTigerCore.
+- `Tiktiger_1.1/TiktigerHost/`: مشروع iOS المضيف SwiftUI وTigerCore، والمشروع هو `TiktigerHost.xcodeproj` مع Scheme `TiktigerHost`.
 - `Tiktiger_1.1/Xcode_Dylib_Project/`: مشروع `TiktigerDylib.xcodeproj` ومصدر C وPublic API وScripts.
 - `Tiktiger_1.1/Branding/`: الهوية والأصول الجديدة.
 - `Tiktiger_1.1/Docs/` و`Tiktiger_1.1/Integration/`: وثائق البناء والتكامل والاختبار.

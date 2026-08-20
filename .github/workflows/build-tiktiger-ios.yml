@@ -5,7 +5,7 @@ on:
   push:
     paths:
       - 'Tiktiger_1.1/Xcode_Dylib_Project/**'
-      - 'Tiktiger_1.1/TigerIOSStarter/**'
+      - 'Tiktiger_1.1/TiktigerHost/**'
       - '.github/workflows/build-tiktiger-ios.yml'
 
 permissions:
@@ -24,6 +24,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Legacy active-reference guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/validate_legacy_active_references.py
 
       - name: Inspect Apple toolchain
         shell: bash
@@ -74,7 +80,7 @@ jobs:
         run: |
           set -euo pipefail
           PROJECT_DIR="$GITHUB_WORKSPACE/Tiktiger_1.1/Xcode_Dylib_Project"
-          HOST_DIR="$GITHUB_WORKSPACE/Tiktiger_1.1/TigerIOSStarter"
+          HOST_DIR="$GITHUB_WORKSPACE/Tiktiger_1.1/TiktigerHost"
           OUTPUT="$PROJECT_DIR/BuildOutput/Tiktiger.dylib"
           RUNTIME_DIR="$HOST_DIR/TigerHost/Runtime"
           mkdir -p "$RUNTIME_DIR"
@@ -82,17 +88,17 @@ jobs:
           test -s "$RUNTIME_DIR/Tiktiger.dylib"
           file "$RUNTIME_DIR/Tiktiger.dylib"
 
-      - name: Build TigerHost with embedded Tiktiger.dylib
+      - name: Build TiktigerHost with embedded Tiktiger.dylib
         shell: bash
         run: |
           set -euo pipefail
-          HOST_DIR="$GITHUB_WORKSPACE/Tiktiger_1.1/TigerIOSStarter"
-          HOST_PROJECT="$HOST_DIR/TigerIOSStarter.xcodeproj"
+          HOST_DIR="$GITHUB_WORKSPACE/Tiktiger_1.1/TiktigerHost"
+          HOST_PROJECT="$HOST_DIR/TiktigerHost.xcodeproj"
           HOST_DERIVED="$HOST_DIR/Build/.DerivedData"
           rm -rf "$HOST_DERIVED"
           xcodebuild \
             -project "$HOST_PROJECT" \
-            -scheme TigerHost \
+            -scheme TiktigerHost \
             -configuration Release \
             -sdk iphoneos \
             -destination 'generic/platform=iOS' \
@@ -104,24 +110,24 @@ jobs:
             clean build 2>&1 | tee "$GITHUB_WORKSPACE/host_build.log"
 
           grep -q 'BUILD SUCCEEDED' "$GITHUB_WORKSPACE/host_build.log"
-          HOST_APP="$(find "$HOST_DERIVED/Build/Products" -type d -path '*/Release-iphoneos/TigerHost.app' -print -quit)"
+          HOST_APP="$(find "$HOST_DERIVED/Build/Products" -type d -path '*/Release-iphoneos/TiktigerHost.app' -print -quit)"
           test -n "$HOST_APP"
           test -f "$HOST_APP/Frameworks/Tiktiger.dylib"
           mkdir -p "$GITHUB_WORKSPACE/host_app"
-          ditto "$HOST_APP" "$GITHUB_WORKSPACE/host_app/TigerHost.app"
+          ditto "$HOST_APP" "$GITHUB_WORKSPACE/host_app/TiktigerHost.app"
           printf 'Host app: %s\nEmbedded dylib: %s\n' "$HOST_APP" "$HOST_APP/Frameworks/Tiktiger.dylib" > "$GITHUB_WORKSPACE/host_runtime_embedding.txt"
 
-      - name: Build TigerHost for iphonesimulator without device dylib
+      - name: Build TiktigerHost for iphonesimulator without device dylib
         shell: bash
         run: |
           set -euo pipefail
-          HOST_DIR="$GITHUB_WORKSPACE/Tiktiger_1.1/TigerIOSStarter"
-          HOST_PROJECT="$HOST_DIR/TigerIOSStarter.xcodeproj"
+          HOST_DIR="$GITHUB_WORKSPACE/Tiktiger_1.1/TiktigerHost"
+          HOST_PROJECT="$HOST_DIR/TiktigerHost.xcodeproj"
           SIM_DERIVED="$HOST_DIR/Build/.SimulatorDerivedData"
           rm -rf "$SIM_DERIVED"
           xcodebuild \
             -project "$HOST_PROJECT" \
-            -scheme TigerHost \
+            -scheme TiktigerHost \
             -configuration Debug \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
@@ -233,4 +239,4 @@ jobs:
             host_runtime_embedding.txt
             simulator_build.log
             symbol_status.txt
-            host_app/TigerHost.app
+            host_app/TiktigerHost.app
