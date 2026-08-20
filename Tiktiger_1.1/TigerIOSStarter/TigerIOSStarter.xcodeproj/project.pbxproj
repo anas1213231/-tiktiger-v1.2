@@ -19,7 +19,7 @@
 					100000000000000000000010 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000092 /* Assets.xcassets */; };
 			100000000000000000000094 /* TiktigerMediaDownloadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000093 /* TiktigerMediaDownloadService.swift */; };
 			100000000000000000000095 /* TiktigerRuntimeCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000096 /* TiktigerRuntimeCoordinator.swift */; };
-			100000000000000000000097 /* Tiktiger.dylib in Embed Tiktiger */ = {isa = PBXBuildFile; fileRef = 100000000000000000000098 /* Tiktiger.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+			100000000000000000000097 /* Tiktiger.dylib in Embed Tiktiger */ = {isa = PBXBuildFile; fileRef = 100000000000000000000098 /* Tiktiger.dylib */; platformFilters = (iphoneos, ); settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 
 /* End PBXBuildFile section */
 

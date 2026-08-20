@@ -11,6 +11,7 @@ required = {
     'xcode_version': 'xcodebuild -version' in text,
     'xcode_select': 'xcode-select -p' in text,
     'ios_sdk': 'xcrun --sdk iphoneos --show-sdk-version' in text,
+    'simulator_sdk': 'xcrun --sdk iphonesimulator --show-sdk-version' in text and '-sdk iphonesimulator' in text,
     'project_path': 'Tiktiger_1.1/Xcode_Dylib_Project' in text and 'TiktigerDylib.xcodeproj' in text,
     'scheme': '-scheme TiktigerDylib' in text,
     'release': '-configuration Release' in text,
@@ -24,6 +25,7 @@ required = {
     'otool_dependencies': 'otool -L "$OUTPUT"' in text,
     'nm': 'nm -gU "$OUTPUT"' in text and '[[:space:]_]' in text,
     'sha256': 'shasum -a 256 "$OUTPUT"' in text,
+    'symbol_status_table': 'SYMBOL_STATUS_FILE' in text and 'for symbol in' in text and ': FOUND' in text and ': FAILED' in text,
     'mach_o_gate': "grep -Eiq 'Mach-O'" in text,
     'arm64_gate': "grep -Eiq 'arm64'" in text,
     'dylib_gate': "grep -Eiq 'MH_DYLIB'" in text,
@@ -44,6 +46,10 @@ required = {
     'host_embedding_gate': 'test -f "$HOST_APP/Frameworks/Tiktiger.dylib"' in text,
     'host_app_artifact': 'host_app/TigerHost.app' in text,
     'host_runtime_artifact': 'host_runtime_embedding.txt' in text,
+    'simulator_build': 'Build TigerHost for iphonesimulator without device dylib' in text and 'simulator_build.log' in text,
+    'simulator_runtime_guard': 'targetEnvironment(simulator)' in (root / 'Tiktiger_1.1/TigerIOSStarter/TigerHost/TiktigerRuntimeCoordinator.swift').read_text(encoding='utf-8'),
+    'runtime_not_claimed_by_build': 'Runtime milestones: NOT CAPTURED in build-only job' in text,
+    'symbol_status_artifact': 'symbol_status.txt' in text,
 }
 for name, ok in required.items():
     print(f'{name}: ' + ('OK' if ok else 'MISSING'))

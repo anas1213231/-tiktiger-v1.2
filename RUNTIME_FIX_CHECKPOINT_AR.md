@@ -3,10 +3,14 @@
 تم إصلاح مسار التشغيل في المصدر:
 
 - Host يملك `TiktigerRuntimeCoordinator.swift`.
-- Host يضمّن `TigerHost/Runtime/Tiktiger.dylib` عبر PBX Embed phase وCodeSignOnCopy.
-- dylib تحتوي constructor وruntime markers وJSON diagnostics.
+- Host يضمّن `TigerHost/Runtime/Tiktiger.dylib` عبر PBX Embed phase وCodeSignOnCopy على iphoneos فقط.
+- dylib تحتوي constructor وruntime markers وJSON diagnostics؛ constructor لا يعلن UI.
+- Host يحتفظ بـdlopen handle، ويسجل path/dlerror/dlsym وtimestamps، ولا يستدعي dlclose.
+- `ui_registered` و`ui_presented` لا يحدثان إلا بعد view hierarchy confirmation.
+- Simulator لا يحاول تحميل device dylib، وWorkflow يبني Host simulator منفصلًا.
 - Feature registry keys وDownloadStage تمر إلى Public API عند توفر binary الحقيقي.
-- Workflow يبني dylib ثم يبني TigerHost ويتحقق من وجود dylib داخل `Frameworks/TigerHost.app`.
+- Workflow يبني dylib ثم يبني TigerHost iphoneos، ثم TigerHost iphonesimulator بدون device dylib، ويتحقق من وجود dylib داخل `Frameworks/TigerHost.app`.
+- Workflow ينشئ `symbol_status.txt` بجدول FOUND/FAILED؛ Runtime milestones لا تُعلن من Build-only job.
 - لا يوجد binary وهمي أو binary committed داخل المصدر.
 - TiktigerFeatures.c لم يتغير في هذا الإصلاح.
 

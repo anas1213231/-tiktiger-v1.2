@@ -1,6 +1,22 @@
 import Combine
 import Foundation
 import Darwin
+import UIKit
+
+struct TiktigerRuntimeSymbolStatus: Identifiable {
+    let id: String
+    let found: Bool
+    let detail: String
+    let timestamp: String
+}
+
+struct TiktigerRuntimeMilestone: Identifiable {
+    let id = UUID()
+    let name: String
+    let state: String
+    let timestamp: String
+    let detail: String
+}
 
 final class TiktigerRuntimeCoordinator: ObservableObject {
     static let shared = TiktigerRuntimeCoordinator()
@@ -13,11 +29,18 @@ final class TiktigerRuntimeCoordinator: ObservableObject {
     @Published private(set) var uiPresented = false
     @Published private(set) var diagnosticsJSON = "{}"
     @Published private(set) var registeredFeatureKeys: [String] = []
+    @Published private(set) var symbolReports: [TiktigerRuntimeSymbolStatus] = []
+    @Published private(set) var milestoneEvents: [TiktigerRuntimeMilestone] = []
+    @Published private(set) var loadAttempts: [String] = []
+    @Published private(set) var dylibPath = ""
+    @Published private(set) var runtimePlatform = "unknown"
     @Published private(set) var lastError = ""
     @Published private(set) var attempted = false
 
     private var handle: UnsafeMutableRawPointer?
     private var didRegisterUI = false
+    private var resolvedSymbols: [String: UnsafeMutableRawPointer] = [:]
+    private let timestampFormatter = ISO8601DateFormatter()
 
     private typealias TTNoArg = @convention(c) () -> Void
     private typealias TTInt = @convention(c) () -> Int32
@@ -26,6 +49,25 @@ final class TiktigerRuntimeCoordinator: ObservableObject {
     private typealias TTFeatureCount = @convention(c) () -> UInt
     private typealias TTFeatureKeyAt = @convention(c) (UInt) -> UnsafePointer<CChar>?
     private typealias TTStage = @convention(c) (Int32) -> Void
+
+    private let requiredSymbolNames = [
+        "tt_product_name",
+        "tt_version",
+        "tt_runtime_initialize",
+        "tt_runtime_dylib_loaded",
+        "tt_runtime_initializer_executed",
+        "tt_runtime_core_started",
+        "tt_runtime_feature_registry_ready",
+        "tt_runtime_mark_ui_registered",
+        "tt_runtime_mark_ui_presented",
+        "tt_runtime_ui_registered",
+        "tt_runtime_ui_presented",
+        "tt_runtime_diagnostics_json",
+        "tt_feature_count",
+        "tt_feature_key_at",
+        "tt_set_feature_enabled",
+        "tt_set_download_stage"
+    ]
 
     private init() {}
 
@@ -39,17 +81,23 @@ final class TiktigerRuntimeCoordinator: ObservableObject {
 
     func start() {
         attempted = true
+#if targetEnvironment(simulator)
+        runtimePlatform = "iphonesimulator"
+        lastError = "Device-only Tiktiger.dylib load skipped on iphonesimulator"
+        recordMilestone("simulator_device_load", state: "SKIPPED", detail: lastError)
+        refreshState()
+        return
+#else
+        runtimePlatform = "iphoneos"
         guard openDylib() else {
             refreshState()
             return
         }
-
-        callVoid(named: "tt_runtime_initialize")
-        if !didRegisterUI {
-            callVoid(named: "tt_runtime_mark_ui_registered")
-            didRegisterUI = true
-        }
+        resolveRequiredSymbols()
+        _ = callVoid(named: "tt_runtime_initialize")
+        recordMilestone("initializer_call", state: initializerExecuted ? "VERIFIED" : "FAILED", detail: "Host call completed")
         refreshState()
+#endif
     }
 
     func setDownloadStage(_ stage: Int32) {
@@ -70,12 +118,25 @@ final class TiktigerRuntimeCoordinator: ObservableObject {
         }
     }
 
-    func markPresented() {
-        guard handle != nil else {
-            refreshState()
-            return
-        }
-        callVoid(named: "tt_runtime_mark_ui_presented")
+    func markUIRegistered(from view: UIView) {
+        guard handle != nil,
+              view.window != nil,
+              view.superview != nil else { return }
+        guard !didRegisterUI else { return }
+        guard callVoid(named: "tt_runtime_mark_ui_registered") else { return }
+        didRegisterUI = true
+        recordMilestone("ui_registered", state: "VERIFIED", detail: "Host probe view entered a window hierarchy")
+        refreshState()
+    }
+
+    func confirmPresented(from view: UIView) {
+        guard handle != nil,
+              didRegisterUI,
+              view.window != nil,
+              view.superview != nil,
+              !view.bounds.isEmpty else { return }
+        guard callVoid(named: "tt_runtime_mark_ui_presented") else { return }
+        recordMilestone("ui_presented", state: "VERIFIED", detail: "Host probe view has a window, superview, and non-empty bounds")
         refreshState()
     }
 
@@ -92,34 +153,75 @@ final class TiktigerRuntimeCoordinator: ObservableObject {
         }
         candidates.append("@rpath/Tiktiger.dylib")
 
-        for candidate in candidates {
+        var uniqueCandidates: [String] = []
+        for candidate in candidates where !uniqueCandidates.contains(candidate) {
+            uniqueCandidates.append(candidate)
+        }
+
+        for candidate in uniqueCandidates {
+            _ = dlerror()
             let loaded = candidate.withCString { path in
                 dlopen(path, RTLD_NOW | RTLD_GLOBAL)
             }
             if let loaded {
                 handle = loaded
+                dylibPath = candidate
+                let detail = "FOUND path=\(candidate)"
+                loadAttempts.append("\(timestamp()): \(detail)")
+                recordMilestone("dylib_loaded", state: "VERIFIED", detail: detail)
                 lastError = ""
+                // Intentionally no dlclose: the singleton retains this handle for app lifetime.
                 return true
             }
+            let error = takeDlError()
+            let detail = error.isEmpty ? "FAILED path=\(candidate)" : "FAILED path=\(candidate) dlerror=\(error)"
+            loadAttempts.append("\(timestamp()): \(detail)")
         }
 
-        lastError = "Tiktiger.dylib was not loadable from the host app Frameworks path"
+        lastError = loadAttempts.last ?? "Tiktiger.dylib load failed"
+        recordMilestone("dylib_loaded", state: "FAILED", detail: lastError)
         return false
     }
 
-    private func symbol(named name: String) -> UnsafeMutableRawPointer? {
-        guard let handle else { return nil }
-        return name.withCString { symbolName in
-            dlsym(handle, symbolName)
+    private func resolveRequiredSymbols() {
+        for name in requiredSymbolNames {
+            _ = symbol(named: name)
         }
     }
 
-    private func callVoid(named name: String) {
+    private func takeDlError() -> String {
+        guard let pointer = dlerror() else { return "" }
+        return String(cString: pointer)
+    }
+
+    private func symbol(named name: String) -> UnsafeMutableRawPointer? {
+        if let cached = resolvedSymbols[name] { return cached }
+        guard let handle else {
+            recordSymbol(name: name, found: false, detail: "FAILED no dlopen handle")
+            return nil
+        }
+        _ = dlerror()
+        let pointer = name.withCString { symbolName in
+            dlsym(handle, symbolName)
+        }
+        let error = takeDlError()
+        if let pointer {
+            resolvedSymbols[name] = pointer
+            recordSymbol(name: name, found: true, detail: "FOUND dlsym")
+            return pointer
+        }
+        recordSymbol(name: name, found: false, detail: error.isEmpty ? "FAILED dlsym returned NULL" : "FAILED dlerror=\(error)")
+        return nil
+    }
+
+    @discardableResult
+    private func callVoid(named name: String) -> Bool {
         guard let symbol = symbol(named: name) else {
             lastError = "Missing runtime symbol: \(name)"
-            return
+            return false
         }
         unsafeBitCast(symbol, to: TTNoArg.self)()
+        return true
     }
 
     private func intValue(named name: String) -> Bool {
@@ -151,5 +253,22 @@ final class TiktigerRuntimeCoordinator: ObservableObject {
                 diagnosticsJSON = String(cString: pointer)
             }
         }
+    }
+
+    private func timestamp() -> String {
+        timestampFormatter.string(from: Date())
+    }
+
+    private func recordSymbol(name: String, found: Bool, detail: String) {
+        let report = TiktigerRuntimeSymbolStatus(id: name, found: found, detail: detail, timestamp: timestamp())
+        if let index = symbolReports.firstIndex(where: { $0.id == name }) {
+            symbolReports[index] = report
+        } else {
+            symbolReports.append(report)
+        }
+    }
+
+    private func recordMilestone(_ name: String, state: String, detail: String) {
+        milestoneEvents.append(TiktigerRuntimeMilestone(name: name, state: state, timestamp: timestamp(), detail: detail))
     }
 }

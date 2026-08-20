@@ -33,6 +33,7 @@ jobs:
           xcodebuild -version
           xcode-select -p
           xcrun --sdk iphoneos --show-sdk-version
+          xcrun --sdk iphonesimulator --show-sdk-version
 
       - name: Build Tiktiger.dylib with Xcode
         shell: bash
@@ -110,6 +111,29 @@ jobs:
           ditto "$HOST_APP" "$GITHUB_WORKSPACE/host_app/TigerHost.app"
           printf 'Host app: %s\nEmbedded dylib: %s\n' "$HOST_APP" "$HOST_APP/Frameworks/Tiktiger.dylib" > "$GITHUB_WORKSPACE/host_runtime_embedding.txt"
 
+      - name: Build TigerHost for iphonesimulator without device dylib
+        shell: bash
+        run: |
+          set -euo pipefail
+          HOST_DIR="$GITHUB_WORKSPACE/Tiktiger_1.1/TigerIOSStarter"
+          HOST_PROJECT="$HOST_DIR/TigerIOSStarter.xcodeproj"
+          SIM_DERIVED="$HOST_DIR/Build/.SimulatorDerivedData"
+          rm -rf "$SIM_DERIVED"
+          xcodebuild \
+            -project "$HOST_PROJECT" \
+            -scheme TigerHost \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$SIM_DERIVED" \
+            ARCHS=arm64 \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            clean build 2>&1 | tee "$GITHUB_WORKSPACE/simulator_build.log"
+
+          grep -q 'BUILD SUCCEEDED' "$GITHUB_WORKSPACE/simulator_build.log"
+
       - name: Verify Mach-O, architecture, install name, symbols, and SHA-256
         shell: bash
         run: |
@@ -123,6 +147,7 @@ jobs:
           MACOS_VERSION="$(sw_vers -productVersion)"
           XCODE_VERSION="$(xcodebuild -version | tr '\n' ' ')"
           IOS_SDK_VERSION="$(xcrun --sdk iphoneos --show-sdk-version)"
+          SIMULATOR_SDK_VERSION="$(xcrun --sdk iphonesimulator --show-sdk-version)"
           FILE_RESULT="$(file "$OUTPUT")"
           LIPO_RESULT="$(lipo -info "$OUTPUT")"
           ARCH_LIST="$(lipo -archs "$OUTPUT")"
@@ -131,6 +156,16 @@ jobs:
           INSTALL_NAME="$(otool -D "$OUTPUT")"
           SYMBOL_RESULT="$(nm -gU "$OUTPUT")"
           SHA256_RESULT="$(shasum -a 256 "$OUTPUT")"
+          SYMBOL_STATUS_FILE="$GITHUB_WORKSPACE/symbol_status.txt"
+          : > "$SYMBOL_STATUS_FILE"
+          for symbol in tt_product_name tt_version tt_runtime_initialize tt_runtime_dylib_loaded tt_runtime_initializer_executed tt_runtime_core_started tt_runtime_feature_registry_ready tt_runtime_mark_ui_registered tt_runtime_mark_ui_presented tt_runtime_ui_registered tt_runtime_ui_presented tt_runtime_diagnostics_json tt_feature_count tt_feature_key_at tt_set_feature_enabled tt_set_download_stage; do
+            if printf '%s\n' "$SYMBOL_RESULT" | grep -Eiq "(^|[[:space:]_])${symbol}([[:space:]]|$)"; then
+              printf '%s: FOUND\n' "$symbol" | tee -a "$SYMBOL_STATUS_FILE"
+            else
+              printf '%s: FAILED\n' "$symbol" | tee -a "$SYMBOL_STATUS_FILE"
+              exit 1
+            fi
+          done
 
           printf '%s\n' "$FILE_RESULT"
           printf '%s\n' "$LIPO_RESULT"
@@ -153,7 +188,9 @@ jobs:
             echo "macOS Version: $MACOS_VERSION"
             echo "Xcode Version: $XCODE_VERSION"
             echo "iOS SDK Version: $IOS_SDK_VERSION"
-            echo 'SDK: iphoneos'
+            echo "iOS Simulator SDK Version: $SIMULATOR_SDK_VERSION"
+            echo 'SDK: iphoneos for dylib and device Host'
+            echo 'Simulator SDK: iphonesimulator for Host compile only; device dylib embedding/load skipped'
             echo 'Architecture: arm64'
             echo "Architecture slices: $ARCH_LIST"
             echo "Product Path: $OUTPUT"
@@ -169,9 +206,13 @@ jobs:
             printf '%s\n' "$INSTALL_NAME"
             echo 'exported symbols:'
             printf '%s\n' "$SYMBOL_RESULT"
+            echo 'required symbol status:'
+            cat "$SYMBOL_STATUS_FILE"
+            echo 'Runtime milestones: NOT CAPTURED in build-only job; requires app launch and Host Console log'
             echo 'SHA-256:'
             printf '%s\n' "$SHA256_RESULT"
             echo 'Host build status: BUILD SUCCEEDED'
+            echo 'Simulator Host build status: BUILD SUCCEEDED; device dylib load skipped by targetEnvironment(simulator)'
             echo 'Host runtime embedding:'
             cat "$GITHUB_WORKSPACE/host_runtime_embedding.txt"
           } > "$VERIFICATION"
@@ -190,4 +231,6 @@ jobs:
             verification.txt
             host_build.log
             host_runtime_embedding.txt
+            simulator_build.log
+            symbol_status.txt
             host_app/TigerHost.app

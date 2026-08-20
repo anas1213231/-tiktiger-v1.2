@@ -22,6 +22,8 @@ SERVICE = (HOST / 'TigerHost/Services/TiktigerMediaDownloadService.swift').read_
 HEADER = (HANDOFF / 'Xcode_Dylib_Project/TiktigerDylib/include/Tiktiger.h').read_text(encoding='utf-8')
 ADAPTER = (HANDOFF / 'Integration/TiktigerHostAdapter.m').read_text(encoding='utf-8')
 VERIFY = (HANDOFF / 'Xcode_Dylib_Project/Scripts/verify_dylib.sh').read_text(encoding='utf-8')
+RUNTIME_C = (HANDOFF / 'Xcode_Dylib_Project/TiktigerDylib/src/TiktigerRuntime.c').read_text(encoding='utf-8')
+COORDINATOR = (HOST / 'TigerHost/TiktigerRuntimeCoordinator.swift').read_text(encoding='utf-8')
 
 checks = {
     'host_target_present': 'name = TigerHost;' in HOST_PBX and 'com.apple.product-type.application' in HOST_PBX,
@@ -37,10 +39,16 @@ checks = {
     'host_runtime_loader_in_sources': 'TiktigerRuntimeCoordinator.swift in Sources' in HOST_PBX,
     'host_dylib_embed_phase': 'Tiktiger.dylib in Embed Tiktiger' in HOST_PBX and 'name = "Embed Tiktiger dylib"' in HOST_PBX and 'CodeSignOnCopy' in HOST_PBX,
     'host_runtime_reference': 'path = Tiktiger.dylib;' in HOST_PBX and (HOST / 'TigerHost/Runtime/README_AR.md').exists(),
+    'host_device_only_embed': 'platformFilters = (iphoneos, );' in HOST_PBX,
+    'host_retained_handle': 'private var handle:' in COORDINATOR and 'dlclose(' not in COORDINATOR,
+    'host_dlerror_dlsym_reporting': 'dlerror' in COORDINATOR and 'dlsym' in COORDINATOR and 'symbolReports' in COORDINATOR,
+    'host_view_hierarchy_gate': 'view.window != nil' in COORDINATOR and 'view.superview != nil' in COORDINATOR and 'confirmPresented(from view' in COORDINATOR,
     'dylib_ios_arm64': 'SDKROOT = iphoneos;' in DY_PBX and 'ARCHS = arm64;' in DY_PBX and 'SUPPORTED_PLATFORMS = iphoneos;' in DY_PBX,
     'dylib_contract': 'MACH_O_TYPE = mh_dylib;' in DY_PBX and '@rpath/Tiktiger.dylib' in DY_PBX and 'CURRENT_PROJECT_VERSION = 11;' in DY_PBX,
     'dylib_features_in_sources': 'TiktigerFeatures.c in Sources' in DY_PBX and (HANDOFF / 'Xcode_Dylib_Project/TiktigerDylib/src/TiktigerFeatures.c').exists(),
     'dylib_runtime_in_sources': 'TiktigerRuntime.c in Sources' in DY_PBX and (HANDOFF / 'Xcode_Dylib_Project/TiktigerDylib/src/TiktigerRuntime.c').exists(),
+    'constructor_no_ui_milestones': 'atomic_store(&g_ui_registered' not in RUNTIME_C[RUNTIME_C.index('static void tt_runtime_constructor'):RUNTIME_C.index('void tt_runtime_initialize')] and 'atomic_store(&g_ui_presented' not in RUNTIME_C[RUNTIME_C.index('static void tt_runtime_constructor'):RUNTIME_C.index('void tt_runtime_initialize')],
+    'runtime_timestamps': 'timestamp=' in RUNTIME_C and 'time(NULL)' in RUNTIME_C,
     'runtime_api_contract': all(x in HEADER for x in ['tt_runtime_dylib_loaded', 'tt_runtime_initialize', 'tt_runtime_diagnostics_json']),
     'adapter_symbols_match': all(x in HEADER and x in ADAPTER for x in ['tt_validate_https_url', 'tt_set_feature_enabled', 'tt_sanitize_filename', 'tt_set_download_stage', 'tt_diagnostics_json']),
     'provider_abstraction': 'protocol TiktigerMediaProvider' in SERVICE and 'PROVIDER REQUIRED' in SERVICE,

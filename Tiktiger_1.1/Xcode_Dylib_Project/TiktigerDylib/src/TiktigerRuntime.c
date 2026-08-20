@@ -3,6 +3,7 @@
 #include <stdatomic.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 static atomic_int g_dylib_loaded = 0;
 static atomic_int g_initializer_executed = 0;
@@ -12,8 +13,13 @@ static atomic_int g_ui_registered = 0;
 static atomic_int g_ui_presented = 0;
 static atomic_ulong g_runtime_sequence = 0;
 
+static long long tt_runtime_timestamp(void) {
+    return (long long)time(NULL);
+}
+
 static void tt_runtime_log(const char *event) {
-    fprintf(stderr, "[TiktigerRuntime] event=%s product=%s version=%s sequence=%lu\n",
+    fprintf(stderr, "[TiktigerRuntime] timestamp=%lld event=%s product=%s version=%s sequence=%lu\n",
+            tt_runtime_timestamp(),
             event,
             TT_PRODUCT_NAME,
             TT_RELEASE_VERSION,
@@ -21,6 +27,7 @@ static void tt_runtime_log(const char *event) {
 }
 
 static void tt_runtime_bootstrap(void) {
+    /* The constructor owns load/initializer/Core/registry only. UI remains Host-owned. */
     atomic_store(&g_initializer_executed, 1);
     atomic_store(&g_core_started, 1);
     atomic_store(&g_feature_registry_ready, tt_feature_count() > 0 ? 1 : 0);
@@ -34,6 +41,7 @@ static void tt_runtime_bootstrap(void) {
 __attribute__((constructor))
 #endif
 static void tt_runtime_constructor(void) {
+    /* Do not set g_ui_registered or g_ui_presented here. The Host owns those milestones. */
     atomic_store(&g_dylib_loaded, 1);
     atomic_fetch_add(&g_runtime_sequence, 1);
     tt_runtime_log("dylib_loaded");

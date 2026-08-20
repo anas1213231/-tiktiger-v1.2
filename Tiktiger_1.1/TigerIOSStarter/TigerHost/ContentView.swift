@@ -112,11 +112,16 @@ struct ContentView: View {
             }
         }
         }
+        .background(
+            TiktigerRuntimeViewHierarchyProbe(
+                onRegistered: { view in runtime.markUIRegistered(from: view) },
+                onPresented: { view in runtime.confirmPresented(from: view) }
+            )
+            .frame(width: 1, height: 1)
+            .allowsHitTesting(false)
+        )
         .onAppear {
             runtime.start()
-            DispatchQueue.main.async {
-                runtime.markPresented()
-            }
         }
         .preferredColorScheme(.dark)
         .tint(TiktigerTheme.cyan)
@@ -335,6 +340,26 @@ struct ContentView: View {
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .padding(.top, 4)
         .padding(.bottom, 20)
+    }
+}
+
+private struct TiktigerRuntimeViewHierarchyProbe: UIViewRepresentable {
+    let onRegistered: (UIView) -> Void
+    let onPresented: (UIView) -> Void
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView(frame: .zero)
+        view.isUserInteractionEnabled = false
+        return view
+    }
+
+    func updateUIView(_ view: UIView, context: Context) {
+        DispatchQueue.main.async {
+            guard view.window != nil, view.superview != nil else { return }
+            onRegistered(view)
+            guard !view.bounds.isEmpty else { return }
+            onPresented(view)
+        }
     }
 }
 
@@ -762,6 +787,8 @@ private struct DiagnosticsView: View {
                 }
                 Section("Runtime Integration") {
                     LabeledContent("Overall", value: runtime.overallState)
+                    LabeledContent("Platform", value: runtime.runtimePlatform)
+                    LabeledContent("Loaded Path", value: runtime.dylibPath.isEmpty ? "NONE" : runtime.dylibPath)
                     LabeledContent("DYLIB Loaded", value: runtime.dylibLoaded ? "VERIFIED" : "FAILED")
                     LabeledContent("Initializer", value: runtime.initializerExecuted ? "VERIFIED" : "FAILED")
                     LabeledContent("Core Started", value: runtime.coreStarted ? "VERIFIED" : "FAILED")
@@ -777,6 +804,52 @@ private struct DiagnosticsView: View {
                     Text(runtime.diagnosticsJSON)
                         .font(.system(.caption2, design: .monospaced))
                         .textSelection(.enabled)
+                }
+                Section("Load Attempts") {
+                    if runtime.loadAttempts.isEmpty {
+                        Text("No dlopen attempt recorded")
+                            .foregroundColor(.secondary)
+                    } else {
+                        ForEach(Array(runtime.loadAttempts.enumerated()), id: \.offset) { item in
+                            Text(item.element)
+                                .font(.system(.caption2, design: .monospaced))
+                                .textSelection(.enabled)
+                        }
+                    }
+                }
+                Section("Resolved Symbols") {
+                    ForEach(runtime.symbolReports) { symbol in
+                        VStack(alignment: .leading, spacing: 3) {
+                            HStack {
+                                Text(symbol.id)
+                                    .font(.system(.caption, design: .monospaced))
+                                Spacer()
+                                Text(symbol.found ? "FOUND" : "FAILED")
+                                    .foregroundColor(symbol.found ? .green : .red)
+                                    .font(.caption.weight(.bold))
+                            }
+                            Text("\(symbol.timestamp) · \(symbol.detail)")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                Section("Runtime Milestones") {
+                    ForEach(runtime.milestoneEvents) { event in
+                        VStack(alignment: .leading, spacing: 3) {
+                            HStack {
+                                Text(event.name)
+                                    .font(.subheadline.weight(.semibold))
+                                Spacer()
+                                Text(event.state)
+                                    .foregroundColor(event.state == "VERIFIED" ? .green : (event.state == "SKIPPED" ? .orange : .red))
+                                    .font(.caption.weight(.bold))
+                            }
+                            Text("\(event.timestamp) · \(event.detail)")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
                 Section("Modules") {
                     ForEach(modules) { module in
