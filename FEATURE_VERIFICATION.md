@@ -1,76 +1,58 @@
 # Tiktiger 1.1 — Feature Verification
 
-هذا التقرير يفرّق بين وجود تنفيذ مصدر حقيقي وبين نجاح Runtime أو اختبار جهاز. لم تُجرَ عملية Xcode Build أو تشغيل iOS حقيقي في البيئة الحالية Linux، لذلك لا توجد حالة **VERIFIED** هنا. حالات `IMPLEMENTED NOT TESTED` تعني أن مسار التنفيذ موجود في Swift/C وتم التحقق منه static، لكنه يحتاج Build وتشغيل. حالة `PARTIAL` تعني أن جزء الواجهة أو الجسر موجود بينما التكامل مع التطبيق المضيف أو provider غير مكتمل. حالة `PROVIDER REQUIRED` تعني أن المسار يحتاج endpoint/API أو media resolver مصرحًا. حالة `DEVICE TEST REQUIRED` تعني أن التنفيذ يعتمد Photos أو AVFoundation أو LocalAuthentication أو سلوك iOS لا يمكن إثباته من Linux.
+هذا التقرير يفرق بين **مسار مصدر مكتمل** وبين **Runtime evidence**. نجاح Xcode Build وSimulator smoke لا يثبت تشغيل device dylib أو `ui_presented` على iPhone حقيقي. لذلك لا توجد هنا حالة `VERIFIED` لأي ميزة لم تُختبر بفعل حقيقي.
 
-## الوظائف الأساسية والمسارات الحقيقية
+## الحالات الأساسية
 
-| Feature / Path | Source evidence | Status | What is actually implemented | Remaining proof or dependency |
-|---|---|---|---|---|
-| Master Switch | `ContentView.swift` + `TigerManager.m` | IMPLEMENTED NOT TESTED | حفظ وتمرير حالة التفعيل محليًا | Build وتشغيل Host |
-| Settings dashboard | `ContentView.swift` | IMPLEMENTED NOT TESTED | بطاقة حالة، أقسام، Quick Actions، Developer card | UI smoke test على Simulator أو جهاز |
-| Branding and AppIcon | `tiktiger_logo.png`, `download_arrow.png`, `Assets.xcassets/TiktigerIcon` | IMPLEMENTED NOT TESTED | الأصول الجديدة مدرجة في Resources وasset catalog | Asset catalog build والتحقق البصري |
-| Direct HTTPS media download | `TiktigerMediaDownloadService.swift` | IMPLEMENTED NOT TESTED | URL validation، HTTP status، MIME/extension، temporary file، save/share path | Xcode build وتجربة رابط HTTPS مصرح |
-| Download cancellation | `TiktigerMediaDownloadService.swift` | IMPLEMENTED NOT TESTED | `Task.checkCancellation()` و`cancel()` وتحديث stage | اختبار إلغاء أثناء network transfer |
-| Download retry | `TiktigerMediaDownloadService.swift` | IMPLEMENTED NOT TESTED | حفظ آخر طلب و`retryLast()` | اختبار failure ثم retry |
-| Download history | `TiktigerMediaDownloadService.swift` | IMPLEMENTED NOT TESTED | سجل محلي منزوع query/fragment مع clear | اختبار persistence وإعادة تشغيل التطبيق |
-| Photo Library video/image save | `PHPhotoLibrary` path | DEVICE TEST REQUIRED | طلب صلاحية وحفظ الوسائط بعد download | صلاحية Photos وdevice/simulator runtime |
-| Audio M4A conversion | `AVAssetExportSession` path | DEVICE TEST REQUIRED | استخراج M4A إلى Documents ثم Share Sheet | اختبار AVFoundation على iOS |
-| Media resolver from app post/page URL | Provider abstraction | PROVIDER REQUIRED | provider protocol وdirect HTTPS provider فقط | endpoint/API مصرح لاستخراج direct media URL |
-| LocalAuthentication for Chats/Favorites | `TiktigerLocalAuth` in `ContentView.swift` | DEVICE TEST REQUIRED | deviceOwnerAuthentication gate قبل تفعيل lock toggles | Face ID/passcode test وتأكيد سياسة التطبيق |
-| Appearance controls | `AppearanceSectionView` | IMPLEMENTED NOT TESTED | ColorPicker، AppStorage، Liquid Glass toggles، OLED preference، gradients، reset | UI test؛ بعض التأثيرات تحتاج تطبيق host فعلي |
-| Translation preference | `TranslationSectionView` | PARTIAL | اختيار English/Arabic/Spanish/Vietnamese وحفظ preference | full localization pass بعد launch غير منفذ |
+| Feature | Source path | Status | Evidence and remaining proof |
+|---|---|---|---|
+| Master Switch | `ContentView.swift` → `TiktigerSettingsStore` → `TigerManager`/Registry → UserDefaults → dependent rows | **IMPLEMENTED NOT TESTED** | الحالة العامة محفوظة، dependent states تُعطل وتُستعاد، وDiagnostics تسجل state/registry/persistence events؛ يحتاج enable/disable/relaunch على جهاز. |
+| Appearance | `AppearanceSectionView` → `TiktigerAppearanceService` → `preferredColorScheme` وAppStorage | **IMPLEMENTED NOT TESTED** | Light/Dark/System، persistence، runtime switching وRoot-wide propagation موجودة؛ يحتاج فحص جميع الشاشات وSheets وrestart. |
+| Translation | `TranslationSectionView` → `TiktigerLocalizationService` → `en/ar Localizable.strings` → layoutDirection | **IMPLEMENTED NOT TESTED** | English/Arabic، LTR/RTL، persistence وruntime refresh موجودة؛ Spanish/Vietnamese تستخدم fallback English؛ يحتاج فحص النصوص على الجهاز وrestart. |
+| Diagnostics | `DiagnosticsView` → `TiktigerDeviceDiagnostics` → Application Support → Share Sheet | **IMPLEMENTED NOT TESTED** | timestamps، dlsym/dlopen، milestones، feature audit، sanitization، وملفات التصدير الثلاثة موجودة؛ يحتاج Export فعلي من iPhone. |
+| Direct HTTPS Download | `DownloadCenterView` → `TiktigerMediaDownloadService` → `TiktigerDirectHTTPSProvider` → URLSession | **IMPLEMENTED NOT TESTED** | HTTPS/host/HTTP/MIME/filename/progress/history/error/cancel/retry paths موجودة؛ يحتاج رابط HTTPS مصرح وتجربة Runtime. |
+| Published/Page URL Download | Download Center input → provider boundary | **PROVIDER REQUIRED** | لا يوجد fake resolver؛ يلزم Provider/API مصرح يحول page URL إلى direct media URL. |
+| Cancel | Download Center → service cancel → URLSession/AVAssetExportSession | **IMPLEMENTED NOT TESTED** | cancellation حقيقي وtyped audit events موجودان؛ يحتاج إلغاء network وaudio export على الجهاز. |
+| Retry | Retry button → `retryLast()` → same provider/service path | **IMPLEMENTED NOT TESTED** | retryable URL وfailure→retry path موجودان؛ يحتاج اختبار failure ثم retry. |
+| Photos Save | media service → PHPhotoLibrary addOnly → PHAssetCreationRequest | **DEVICE TEST REQUIRED** | المسار والصلاحيات والأخطاء موجودة؛ يحتاج authorized/denied/restricted/success/failure على iPhone. |
+| M4A Extraction | Download Center Audio mode → AVAsset → AVAssetExportSession AppleM4A | **DEVICE TEST REQUIRED** | audio-track/export/cancel/output/share paths موجودة؛ يحتاج valid/invalid/no-audio/export/cancel/playability test. |
+| Share | `TiktigerShareService` → file validation → `UIActivityViewController` | **IMPLEMENTED NOT TESTED** | missing-file، completion، cancel، error، multi-file Diagnostics export، وcleanup بعد completion موجودة؛ يحتاج Share Sheet فعلي. |
+| Face ID | protected toggle → `TiktigerLocalAuth` → LAContext | **DEVICE TEST REQUIRED** | availability/success/failure/cancel paths مسجلة ومترجمة؛ يحتاج Face ID/passcode/unavailable/not-enrolled test. |
+| Chats Lock | toggle → LocalAuthentication → registry/local state | **PARTIAL** | auth وstate persistence موجودان، لكن Host لا يحتوي Chats protected screen أو unlock flow حقيقي؛ لا fake Chats. |
+| Favorites Lock | toggle → LocalAuthentication → registry/local state | **PARTIAL** | auth وstate persistence موجودان، لكن Host لا يحتوي Favorites protected state أو unlock flow حقيقي؛ لا fake Favorites. |
 
-## Registry-backed C features
+## C Registry boundaries
 
-يوجد registry C حقيقي من عشرة مفاتيح في `TiktigerFeatures.c`. وجود المفتاح لا يثبت أن التطبيق المضيف أو تطبيقًا آخر يملك hook فعليًا لتغيير السلوك؛ لذلك تم فصل runtime registry عن integration.
-
-| Registry key | Status | Evidence / limitation |
+| Registry key | Status | Limitation |
 |---|---|---|
-| `downloadMedia` | IMPLEMENTED NOT TESTED | registry + Host direct download service؛ provider resolver غير موجود |
-| `downloadStories` | PROVIDER REQUIRED | registry key موجود، لكن story URL resolver غير موجود |
-| `downloadAudio` | DEVICE TEST REQUIRED | registry key + M4A service path؛ يحتاج AVFoundation test |
-| `readChats` | NOT IMPLEMENTED | key موجود فقط؛ لا يوجد chat host hook أو integration target |
-| `ghostTyping` | NOT IMPLEMENTED | key موجود فقط؛ لا يوجد message composer hook |
-| `lockChats` | PARTIAL | local authentication UI موجود؛ lock behavior داخل host integration غير مثبت |
-| `lockFavorites` | PARTIAL | local authentication UI موجود؛ favorites provider/hook غير مثبت |
-| `privateProfile` | PARTIAL | toggle وregistry موجودان؛ لا يوجد profile navigation/provider integration |
-| `liquidControls` | PARTIAL | UI/AppStorage وregistry موجودان؛ التأثير على host integration غير مثبت |
-| `followConfirm` | PARTIAL | toggle وregistry موجودان؛ follow action integration غير موجود |
+| `downloadMedia` | **IMPLEMENTED NOT TESTED** | Host direct HTTPS service موجود، لكنه لا يحول page URL. |
+| `downloadStories` | **PROVIDER REQUIRED** | لا يوجد story resolver/provider. |
+| `downloadAudio` | **DEVICE TEST REQUIRED** | M4A path موجود ويحتاج iOS media test. |
+| `readChats` | **NOT IMPLEMENTED** | registry key بلا Chats Host hook. |
+| `ghostTyping` | **NOT IMPLEMENTED** | لا يوجد message composer hook. |
+| `lockChats` | **PARTIAL** | LocalAuth/toggle فقط؛ protected state غير موجودة. |
+| `lockFavorites` | **PARTIAL** | LocalAuth/toggle فقط؛ protected state غير موجودة. |
+| `privateProfile` | **PARTIAL** | state/toggle بلا profile controller/provider. |
+| `liquidControls` | **PARTIAL** | preference/registry flag بلا Host-wide external effect. |
+| `followConfirm` | **PARTIAL** | state/toggle بلا follow action controller. |
 
-## UI-defined features without a completed external hook
+## Build boundary
 
-الصفوف التالية تظهر في لوحة Tiktiger وتحفظ أو تعرض حالة محلية، لكنها ليست مدعومة بمسار dylib hook كامل في الإصدار الحالي. لذلك لا يجوز عرضها كميزات Runtime مكتملة:
-
-| Group | Feature IDs | Status |
-|---|---|---|
-| Profile | `profileStats`, `followerFormat` | NOT IMPLEMENTED |
-| Stories | `storyViews`, `anonymousStories`, `storyGradient` | NOT IMPLEMENTED |
-| Chats | `videoVoice`, `undoMessages`, `keepDeleted` | PARTIAL / DEVICE TEST REQUIRED حسب المسار؛ لا يوجد message host hook |
-| Downloads | `downloadAvatar`, `downloadComments`, `downloadStickers` | PROVIDER REQUIRED |
-| Videos | `progressBar`, `likeConfirm`, `showUsername`, `showFlag` | NOT IMPLEMENTED |
-| Privacy | `hideAds`, `clearHistory`, `multiAccount` | PARTIAL؛ `clearHistory` له إعداد UI فقط ولا يوجد host lifecycle integration كامل |
-| Appearance | `liquidNotices`, `liquidOverlays`, `oledKeyboard` | PARTIAL؛ preferences موجودة، runtime effect غير مثبت |
-| Miscellaneous | `copyText`, `openLinks`, `fastLogout` | NOT IMPLEMENTED |
-
-## Runtime and integration status
-
-| Area | Status | Explanation |
-|---|---|---|
-| C feature registry implementation | IMPLEMENTED NOT TESTED | `tt_feature_count`, `tt_feature_key_at`, `tt_set_feature_enabled` وdiagnostics موجودة في source |
-| HTTPS validation and filename sanitization | IMPLEMENTED NOT TESTED | وظائف C fail-closed موجودة، وSwift service يتحقق من URL وHTTP/MIME |
-| Download stage reporting | IMPLEMENTED NOT TESTED | C enum/stage functions وHost forwarding موجودة |
-| Host RuntimeCoordinator | IMPLEMENTED NOT TESTED | `dlopen`, retained handle، `dlsym`, `dlerror` reporting، simulator guard، UI hierarchy gate موجودة |
-| Host ↔ dylib Adapter file | PARTIAL | `Integration/TiktigerHostAdapter.m` موجود ومتطابق مع contract، لكنه ليس ضمن Compile Sources للـHost target الحالي |
-| Internal feature hooks into another app | NOT IMPLEMENTED | لا توجد hooks أو integration مع تطبيق طرف ثالث في مصدر Tiktiger الحالي |
-
-> النتيجة المهنية: لوحة Tiktiger وDirect HTTPS Download وRuntime diagnostics ليست placeholders، لكن لا يجوز تحويل حالات المصدر إلى `VERIFIED` حتى ينجح Xcode Build ويُشغّل التطبيق وتظهر logs فعلية. ميزات resolver وexternal hooks تبقى صراحة `PROVIDER REQUIRED` أو `NOT IMPLEMENTED`.
+GitHub Actions run `32389935401` من commit `18d30a03f5b3cbe220c6cc8896c30beca8c78ab6` سجل `BUILD SUCCEEDED` لـdylib وHost device وHost simulator، ونجح unsigned IPA packaging وSimulator signing/install/launch/screenshot. هذا دليل Build/Simulator فقط؛ `dylib_loaded` وCore/Registry/UI milestones الخاصة بالـdevice تبقى غير مثبتة.
 
 ## مراجع داخلية
 
 [1]: Tiktiger_1.1/TiktigerHost/TigerHost/ContentView.swift
 [2]: Tiktiger_1.1/TiktigerHost/TigerHost/Services/TiktigerMediaDownloadService.swift
-[3]: Tiktiger_1.1/Xcode_Dylib_Project/TiktigerDylib/src/TiktigerFeatures.c
-[4]: Tiktiger_1.1/Xcode_Dylib_Project/TiktigerDylib/src/TiktigerRuntime.c
-[5]: Tiktiger_1.1/Integration/TiktigerHostAdapter.m
+[3]: Tiktiger_1.1/TiktigerHost/TigerHost/Services/TiktigerSettingsStore.swift
+[4]: Tiktiger_1.1/TiktigerHost/TigerHost/Services/TiktigerAppearanceService.swift
+[5]: Tiktiger_1.1/TiktigerHost/TigerHost/Services/TiktigerLocalizationService.swift
+[6]: Tiktiger_1.1/TiktigerHost/TigerHost/Services/TiktigerShareService.swift
+[7]: Tiktiger_1.1/TiktigerHost/TigerHost/TiktigerDeviceDiagnostics.swift
+[8]: Tiktiger_1.1/TiktigerHost/TigerHost/TiktigerRuntimeCoordinator.swift
+[9]: Tiktiger_1.1/TiktigerHost/TigerCore/TigerManager.m
+[10]: Tiktiger_1.1/TiktigerHost/TiktigerHost.xcodeproj/project.pbxproj
+[11]: Tiktiger_1.1/Xcode_Dylib_Project/TiktigerDylib/src/TiktigerFeatures.c
+[12]: Tiktiger_1.1/Xcode_Dylib_Project/TiktigerDylib/src/TiktigerRuntime.c
 
-الأدلة: [SwiftUI and diagnostics][1]، [download service][2]، [C feature registry][3]، [runtime instrumentation][4]، و[adapter contract][5].
+الأدلة المصدرية هي [1]–[12]، وأدلة Build محفوظة في artifact run `32389935401`.

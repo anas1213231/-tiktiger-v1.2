@@ -1,40 +1,69 @@
 # Tiktiger 1.1 — Known Issues and Remaining TODOs
 
-هذا المستند يصف ما بقي بعد Safe Rename وLegacy Cleanup. لا توجد ادعاءات بأن الميزات أو binary أو Runtime تم اختبارها على iOS من البيئة الحالية.
+هذا المستند يصف ما بقي بعد إكمال Host-only paths وSafe Rename وLegacy Cleanup ونجاح GitHub Xcode verification. لا توجد ادعاءات بأن Runtime الجهاز الحقيقي أو صلاحيات النظام قد اختُبرت قبل وصول تقارير iPhone.
 
 ## Build and signing
 
 | Issue | Status | Impact | Required action |
 |---|---|---|---|
-| لا يوجد macOS/Xcode/iOS SDK في بيئة العمل الحالية | OPEN | لا يمكن إثبات `BUILD SUCCEEDED` أو فحص Mach-O محليًا | تشغيل `.github/workflows/build-tiktiger-ios.yml` على macOS؛ لا تُعلن XCODE VERIFIED قبل نجاحه |
-| لا يوجد `Tiktiger.dylib` binary committed | INTENTIONAL | Host source build يحتاج binary حقيقيًا داخل `TigerHost/Runtime` عند دمج التطبيق | Workflow يبني binary ثم ينسخه إلى Host؛ لا تستخدم placeholder |
-| Signing وTeam وProvisioning | PROVIDER / APP OWNER REQUIRED | Release على جهاز حقيقي يحتاج حساب Apple وentitlements صحيحة | ضبط `DEVELOPMENT_TEAM` وBundle ID والتوقيع في بيئة المالك المصرح |
-| Real-device test | NOT RUN | Photos وFace ID وAVFoundation وdynamic loading غير مثبتة على جهاز | تشغيل Host على iPhone مصرح وتسجيل Console logs وDiagnostics |
+| Xcode/macOS build | **VERIFIED** في GitHub Actions run `32389935401` | dylib وHost device وHost simulator وIPA packaging اجتازت BUILD SUCCEEDED | احتفظ بـ`verification.txt` و`build.log` وartifact كدليل. |
+| Final Apple signing | **OWNER ACTION REQUIRED** | IPA الحالية Unsigned/Signable وليست موقعة من Apple | أعد توقيع IPA في eSign بشهادة وProvisioning مصرح بهما. |
+| Bundle IDs | **FIXED** | هوية التطبيق يجب أن تطابق Provisioning | Host: `com.ucorc.Tiktiger`؛ Core: `com.ucorc.TiktigerCore`. |
+| Real-device test | **NOT RUN** | Photos وFace ID وAVFoundation وdevice dynamic loading غير مثبتة على iPhone | ثبّت نسخة eSign على iPhone وصدّر تقارير Self-Diagnostics. |
 
 ## Runtime and integration
 
 | Issue | Status | Impact | Required action |
 |---|---|---|---|
-| Runtime symbols لم تُفحص داخل binary حقيقي في هذه الجلسة | NOT VERIFIED | `FOUND` في source لا يساوي `nm -gU FOUND` | بعد CI، راجع `symbol_status.txt` و`verification.txt` |
-| Host launch logs غير متوفرة | NOT CAPTURED | حالات DYLIB LOADED وINITIALIZER وCORE وUI لا يمكن إعلانها VERIFIED | شغّل التطبيق واحفظ Console output وMilestone timestamps |
-| Host ↔ dylib Adapter | PARTIAL | `Integration/TiktigerHostAdapter.m` موجود ومتوافق مع contract لكنه ليس في Compile Sources للـHost الحالي | إما ربطه صراحة عند اعتماد bridge Objective-C، أو إبقاء RuntimeCoordinator هو المسار المعتمد وتوثيق القرار |
-| App-level external hooks | NOT IMPLEMENTED | لا توجد hooks لتطبيق طرف ثالث أو لتجاوز توقيع/صلاحيات | يحتاج Integration/API مصرحًا ومشروع Host يملكه المستخدم؛ ليس جزءًا من هذه الحزمة |
-| Simulator | EXPECTED SKIP | device dylib لا تُحمّل في Simulator | استخدم Simulator لاختبار UI فقط؛ استخدم device build/runtime للـdylib |
+| Device dylib runtime milestones | **NOT VERIFIED** | لا يمكن إعلان `DYLIB LOADED` أو `CORE STARTED` أو `UI PRESENTED` من Simulator | أرسل `device-runtime.json` و`device-console.log` و`DEVICE_RUNTIME_VERIFICATION.md`. |
+| Host launch in Simulator | **VERIFIED** في آخر run | signing/install/launch/screenshot نجحت بعد إصلاح TigerCore install name | لا يُستخدم هذا لإثبات device dylib runtime. |
+| TigerCore framework install name | **FIXED** | كان يبحث عن `/Library/Frameworks/TigerCore.framework/TigerCore` ويسبب dyld crash في Simulator | أصبح `@rpath/TigerCore.framework/TigerCore` مع Host runpath `@executable_path/Frameworks`. |
+| Host ↔ dylib Adapter | **PARTIAL BY DESIGN** | `Integration/TiktigerHostAdapter.m` موجود ومتوافق، لكن RuntimeCoordinator هو المسار المربوط في Host target | لا تُضف bridge إضافية إلا عند حاجة Integration مصرح بها. |
+| App-level external hooks | **NOT IMPLEMENTED** | لا توجد hooks لتطبيق طرف ثالث أو تجاوز توقيع/صلاحيات | يحتاج API/Host integration مصرحًا ومختلفًا عن هذه الحزمة. |
+| Simulator device dylib loading | **EXPECTED SKIP** | device dylib لا تُحمّل في Simulator عمدًا | استخدم Simulator للـUI فقط؛ استخدم device eSign للـdylib runtime. |
 
 ## Features and providers
 
-| Issue | Status | Impact | Required action |
-|---|---|---|---|
-| Media resolver من رابط منشور أو صفحة تطبيق | PROVIDER REQUIRED | Direct HTTPS download يعمل فقط عندما يقدّم المستخدم direct media URL صالحًا | توفير endpoint/API مصرح وتطبيق `TiktigerMediaProvider` ثم اختبار MIME/status/error paths |
-| Profile/Stories/Chats/Videos/Privacy external behaviors | PARTIAL أو NOT IMPLEMENTED حسب feature | UI والregistry لا يثبتان integration داخل مضيف خارجي | إضافة provider أو host-owned APIs مصرح بها، ثم تحديث `FEATURE_VERIFICATION.md` فقط بعد اختبار |
-| Full localization | PARTIAL | اختيار اللغة يحفظ preference، لكن النصوص ليست localized بالكامل بعد launch | تنفيذ localization pass لاحقًا؛ ليس ضمن Safe Rename الحالية |
-| Liquid Glass/OLED actual effects | PARTIAL | preferences وUI controls موجودة، لكن تأثيرها خارج Host preview غير مثبت | اختبار iOS version/device وتوصيل التأثيرات الفعلية قبل إعلانها VERIFIED |
-| Photo Library and M4A | DEVICE TEST REQUIRED | المسار البرمجي موجود لكن صلاحيات النظام وAVAsset behavior غير مختبرة | اختبار Simulator/device مع ملفات وسائط مصرح بها |
+| Feature | Status | Remaining requirement |
+|---|---|---|
+| Master Switch | **IMPLEMENTED NOT TESTED** | enable/disable/terminate/relaunch ومراجعة dependent rows وaudit events على الجهاز. |
+| Appearance | **IMPLEMENTED NOT TESTED** | Light/Dark/System، جميع الشاشات وSheets، ثم restart على الجهاز. |
+| Translation | **IMPLEMENTED NOT TESTED** | English/Arabic، LTR/RTL، runtime switch، restart، ومراجعة عدم ظهور keys. |
+| Diagnostics | **IMPLEMENTED NOT TESTED** | Export فعلي من iPhone ومراجعة الملفات الثلاثة. |
+| Direct HTTPS Download | **IMPLEMENTED NOT TESTED** | اختبار رابط HTTPS مباشر مصرح مع HTTP/MIME/progress/history/cancel/retry. |
+| Published/Page URL Download | **PROVIDER REQUIRED** | يلزم Provider/API مصرح لتحويل Page URL إلى direct media URL؛ لا يوجد fake provider. |
+| Cancel / Retry | **IMPLEMENTED NOT TESTED** | اختبار cancellation وfailure→retry على network وaudio path. |
+| Photos | **DEVICE TEST REQUIRED** | authorized/denied/restricted/save success/save failure. |
+| M4A | **DEVICE TEST REQUIRED** | valid/no-audio/export failure/cancel/output/playability. |
+| Share | **IMPLEMENTED NOT TESTED** | valid/missing file، completion، cancel، cleanup، وDiagnostics multi-file share. |
+| Face ID | **DEVICE TEST REQUIRED** | success/failure/user cancel/unavailable/not enrolled. |
+| Chats Lock | **PARTIAL** | لا يوجد Chats protected screen أو unlock flow حقيقي في Host الحالي؛ لا fake implementation. |
+| Favorites Lock | **PARTIAL** | لا يوجد Favorites protected screen أو unlock flow حقيقي في Host الحالي؛ لا fake implementation. |
+| Profile/Stories/Videos/Privacy/Miscellaneous rows | **PARTIAL / NOT IMPLEMENTED / PROVIDER REQUIRED** | الحالات التفصيلية ومسارات النقص موثقة في `FEATURE_END_TO_END_MAP.md`. |
 
-## Legacy and documentation
+## Legacy and source boundary
 
-لا توجد Legacy active references في PBX أو Schemes أو Workflow أو Compile Sources أو Resources أو Embed phases. بقيت بعض التقارير القديمة في مستودع العمل كسجل تاريخي فقط، ولم تُضمّن في قائمة ZIP النظيفة المختارة. لم تُحذف لمجرد الاسم، ولا تدخل في Build inputs.
+لا توجد Legacy active references في PBX أو Schemes أو Workflow أو Compile Sources أو Resources أو Embed phases. لا تُستخدم `FeatureKit` أو `TigerIOSStarter` أو `VibeTok` في Build inputs. يعتمد المشروع على Source of Truth الحالي فقط.
+
+## Integrity and security
+
+لم تتغير `Tiktiger.dylib` المعتمدة. SHA-256 المرجعية هي:
+
+```text
+c74d63937efdb58421382910e0de0c5cd23dd8ee046c986f8f4698e678a31c80
+```
+
+Install name الخاص بـdylib هو `@rpath/Tiktiger.dylib`. لا يجب أن تحتوي تقارير Self-Diagnostics على Tokens أو Cookies أو Credentials أو Private Keys أو بيانات شخصية؛ استخدم sanitizer ولا تضع أسرارًا في test URLs.
 
 ## Verification policy
 
-الحالة `STATIC VALIDATION: PASS` تعني سلامة source/PBX/Workflow checks فقط. لا تعني Xcode build أو signing أو Runtime launch. الحالة النهائية الصادقة ستبقى `XCODE BUILD NOT VERIFIED` إلى أن ينجح macOS Workflow فعليًا، وتبقى `Real-device test: NOT RUN` حتى يظهر log من iPhone حقيقي.
+`STATIC VALIDATION: PASS` يعني سلامة source/PBX/Workflow checks فقط. `XCODE VERIFIED: YES` في هذه النسخة يستند إلى run `32389935401` الذي سجل `BUILD SUCCEEDED` وartifact checks. `TIKTIGER RUNTIME VERIFIED` يبقى **NO** حتى يصل تقرير iPhone حقيقي يثبت التسلسل:
+
+```text
+dylib_loaded
+initializer_executed
+core_started
+feature_registry_ready
+ui_registered
+ui_presented
+```

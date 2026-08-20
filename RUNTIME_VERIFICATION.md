@@ -1,82 +1,113 @@
 # Tiktiger 1.1 — Runtime Verification
 
-هذا التقرير يثبت تصميم instrumentation ومسارات التحقق، لكنه لا يساوي تشغيلًا فعليًا. البيئة الحالية Linux ولا تحتوي Xcode أو iOS runtime، ولا يوجد binary committed يمكن تمريره إلى `nm` أو `otool`. لذلك كل حالة Runtime أدناه هي **NOT VERIFIED** ما لم يثبتها log من تشغيل Host على macOS/iOS. لا تُستخدم static source evidence لتغيير الحالة إلى VERIFIED.
+هذا التقرير يفصل بين **Xcode/Simulator evidence** وبين **Real Device Runtime evidence**. نجاح Build أو وجود dylib داخل IPA لا يثبت تحميلها وتشغيلها على جهاز حقيقي. لا تصبح `ui_presented` حالة `VERIFIED` إلا بعد Host view-hierarchy confirmation محفوظة في تقرير iPhone.
+
+## Build evidence
+
+| Item | Result |
+|---|---|
+| GitHub Actions run | `32389935401` |
+| Commit | `18d30a03f5b3cbe220c6cc8896c30beca8c78ab6` |
+| Xcode runner | macOS/Xcode workflow؛ تفاصيل toolchain في `verification.txt` |
+| dylib build | **BUILD SUCCEEDED** |
+| dylib binary | Mach-O 64-bit dynamically linked shared library, arm64 |
+| dylib SHA-256 | `c74d63937efdb58421382910e0de0c5cd23dd8ee046c986f8f4698e678a31c80` |
+| Host iphoneos build | **BUILD SUCCEEDED** |
+| Host dylib embedding | **EMBED SUCCEEDED** |
+| Host iphonesimulator build | **BUILD SUCCEEDED** |
+| Simulator signing/install/launch/screenshot | **SUCCEEDED** |
+| Xcode verified | **YES — actual BUILD SUCCEEDED evidence present** |
 
 ## Runtime ownership model
 
-يملك constructor في `TiktigerRuntime.c` milestones الخاصة بتحميل dylib وتهيئة initializer وبدء Core وجاهزية feature registry فقط. لا يكتب constructor إلى `g_ui_registered` أو `g_ui_presented`. يملك `TiktigerRuntimeCoordinator` في Host استدعاء `dlopen` واحتفاظ handle طوال عمر التطبيق، ثم يستدعي `dlsym` ويمرر UI milestones فقط بعد فحص `view.window` و`view.superview` وnon-empty bounds.
+يملك constructor في `TiktigerRuntime.c` milestones الخاصة بـ`dylib_loaded`, `initializer_executed`, `core_started`, و`feature_registry_ready` فقط. لا يكتب constructor إلى `g_ui_registered` أو `g_ui_presented`.
 
-في Simulator، يستخدم Host شرط `targetEnvironment(simulator)` ويُسجّل أن تحميل device dylib تم تخطيه. كما يضع PBX Embed phase `platformFilters = (iphoneos, )` لمنع تضمين device binary في Simulator build. هذا التخطي متوقع وليس فشلًا في device runtime.
+يملك `TiktigerRuntimeCoordinator` في Host استدعاء `dlopen`، والـretained handle طوال عمر التطبيق، و`dlsym`، وتسجيل `dlerror()`، وتمرير UI milestones بعد فحص view hierarchy. على Simulator يطبق `targetEnvironment(simulator)` ويُتخطى تحميل device dylib، كما تمنع PBX platform filter تضمين device dylib في Simulator.
 
-## Required symbol matrix
+## Required symbol matrix from actual artifact
 
-| Symbol | Static source status | Expected runtime role | Real binary status in current Linux session |
-|---|---|---|---|
-| `tt_product_name` | FOUND | Product identity | NOT VERIFIED — no macOS dylib inspected |
-| `tt_version` | FOUND | Release version `1.1` | NOT VERIFIED — no macOS dylib inspected |
-| `tt_runtime_initialize` | FOUND | Explicit Host initialization call | NOT VERIFIED |
-| `tt_runtime_dylib_loaded` | FOUND | Load probe | NOT VERIFIED |
-| `tt_runtime_initializer_executed` | FOUND | Constructor/bootstrap probe | NOT VERIFIED |
-| `tt_runtime_core_started` | FOUND | Core bootstrap probe | NOT VERIFIED |
-| `tt_runtime_feature_registry_ready` | FOUND | Registry count probe | NOT VERIFIED |
-| `tt_runtime_mark_ui_registered` | FOUND | Host-owned UI registration marker | NOT VERIFIED |
-| `tt_runtime_mark_ui_presented` | FOUND | Host-owned presentation marker | NOT VERIFIED |
-| `tt_runtime_ui_registered` | FOUND | UI registration state probe | NOT VERIFIED |
-| `tt_runtime_ui_presented` | FOUND | UI presentation state probe | NOT VERIFIED |
-| `tt_runtime_diagnostics_json` | FOUND | Runtime milestone JSON | NOT VERIFIED |
-| `tt_feature_count` | FOUND | Registry size | NOT VERIFIED |
-| `tt_feature_key_at` | FOUND | Registry key enumeration | NOT VERIFIED |
-| `tt_set_feature_enabled` | FOUND | Feature toggle forwarding | NOT VERIFIED |
-| `tt_set_download_stage` | FOUND | Download pipeline stage forwarding | NOT VERIFIED |
-| `tt_diagnostics_json` | FOUND | Feature/download diagnostics JSON | NOT VERIFIED |
+| Symbol | Artifact status | Runtime meaning |
+|---|---|---|
+| `tt_product_name` | **FOUND** | Product identity |
+| `tt_version` | **FOUND** | Version 1.1 |
+| `tt_runtime_initialize` | **FOUND** | Host initialization |
+| `tt_runtime_dylib_loaded` | **FOUND** | C load state |
+| `tt_runtime_initializer_executed` | **FOUND** | C initializer state |
+| `tt_runtime_core_started` | **FOUND** | Core state |
+| `tt_runtime_feature_registry_ready` | **FOUND** | Registry state |
+| `tt_runtime_mark_ui_registered` | **FOUND** | Host-owned registration marker |
+| `tt_runtime_mark_ui_presented` | **FOUND** | Host-owned presentation marker |
+| `tt_runtime_ui_registered` | **FOUND** | UI registration getter |
+| `tt_runtime_ui_presented` | **FOUND** | UI presentation getter |
+| `tt_runtime_diagnostics_json` | **FOUND** | Runtime diagnostics JSON |
+| `tt_feature_count` | **FOUND** | Registry enumeration |
+| `tt_feature_key_at` | **FOUND** | Registry key lookup |
+| `tt_set_feature_enabled` | **FOUND** | Registry forwarding |
+| `tt_set_download_stage` | **FOUND** | Download stage forwarding |
 
-`FOUND` في العمود الثاني يعني أن declaration والimplementation موجودان في مصدر Tiktiger الحالي ومربوطان في PBX dylib sources بحسب static validation. لا يعني ذلك أن symbol ظهر في `nm -gU` داخل binary. يجب أن يملأ GitHub Actions الجدول النهائي من `nm -gU BuildOutput/Tiktiger.dylib` بعد Build فعلي.
+`FOUND` هنا نتيجة `nm -gU` وsymbol status داخل artifact، وليست Runtime execution evidence.
 
-## Runtime milestones in required order
+## Runtime milestones
 
-| Order | Milestone | Owner | Static implementation | Runtime status now | Timestamp evidence |
-|---:|---|---|---|---|---|
-| 1 | `DYLIB LOADED` | dylib constructor + Host `dlopen` | IMPLEMENTED | NOT VERIFIED | لا يوجد تشغيل حقيقي؛ Host يسجل ISO8601 وC يسجل `time(NULL)` |
-| 2 | `INITIALIZER EXECUTED` | C bootstrap + Host `tt_runtime_initialize` | IMPLEMENTED | NOT VERIFIED | لا يوجد `build.log` أو Console log من iOS |
-| 3 | `CORE STARTED` | C bootstrap | IMPLEMENTED | NOT VERIFIED | لا يوجد runtime timestamp حقيقي |
-| 4 | `FEATURE REGISTRY READY` | C bootstrap بعد `tt_feature_count() > 0` | IMPLEMENTED | NOT VERIFIED | لا يوجد runtime timestamp حقيقي |
-| 5 | `UI REGISTERED` | Host `markUIRegistered(from:)` فقط | IMPLEMENTED WITH GATE | NOT VERIFIED | لا يُسمح للconstructor بتعيينه؛ يتطلب `window != nil` و`superview != nil` |
-| 6 | `UI PRESENTED` | Host `confirmPresented(from:)` فقط | IMPLEMENTED WITH GATE | NOT VERIFIED | يتطلب UI registered و`window` و`superview` وnon-empty bounds |
+| Order | Milestone | Simulator build/run status | Real-device status | Required evidence |
+|---:|---|---|---|---|
+| 1 | `dylib_loaded` | **NOT VERIFIED** — device dylib is intentionally skipped on Simulator | **NOT VERIFIED** | device `dlopen` success, path, retained handle, timestamp |
+| 2 | `initializer_executed` | **NOT VERIFIED** | **NOT VERIFIED** | real device runtime event and timestamp |
+| 3 | `core_started` | **NOT VERIFIED** | **NOT VERIFIED** | real device C runtime event and timestamp |
+| 4 | `feature_registry_ready` | **NOT VERIFIED** | **NOT VERIFIED** | registry count/key event and timestamp |
+| 5 | `ui_registered` | Simulator launched and screenshot captured, but this is not the Host hierarchy milestone | **NOT VERIFIED** | Host probe event after window/superview confirmation |
+| 6 | `ui_presented` | **NOT VERIFIED** by Host hierarchy probe | **NOT VERIFIED** | Host probe event with registered view, window, superview, and non-empty bounds |
 
-## Expected log format
+## Simulator smoke evidence
 
-عند تشغيل dylib الحقيقي، يجب أن تظهر رسائل C بصيغة مشابهة للآتي مع timestamps فعلية، مع عدم اعتبار هذا المثال log captured:
+The successful CI smoke test recorded:
 
 ```text
-[TiktigerRuntime] timestamp=<epoch-seconds> event=dylib_loaded product=Tiktiger version=1.1 sequence=<n>
-[TiktigerRuntime] timestamp=<epoch-seconds> event=initializer_executed product=Tiktiger version=1.1 sequence=<n>
-[TiktigerRuntime] timestamp=<epoch-seconds> event=core_started product=Tiktiger version=1.1 sequence=<n>
-[TiktigerRuntime] timestamp=<epoch-seconds> event=feature_registry_ready product=Tiktiger version=1.1 sequence=<n>
-[TiktigerRuntime] timestamp=<epoch-seconds> event=ui_registered product=Tiktiger version=1.1 sequence=<n>
-[TiktigerRuntime] timestamp=<epoch-seconds> event=ui_presented product=Tiktiger version=1.1 sequence=<n>
+SIMULATOR DEVICE: F057F93D-2562-418F-AB4C-35C3B965CD8D BOOTED
+SIMULATOR SIGNING: SUCCEEDED
+APP INSTALL: SUCCEEDED
+UI LAUNCH: SUCCEEDED
+UI SCREENSHOT: CAPTURED
+RUNTIME SMOKE STATUS: SUCCEEDED
+DEVICE DYLIB LOADED: NOT VERIFIED — simulator guard intentionally skips device dylib
+UI PRESENTED: NOT VERIFIED by Host hierarchy probe
 ```
 
-الـHost يعرض أيضًا path الفعلي و`dlerror()` لكل candidate ونتيجة كل `dlsym` داخل Diagnostics. إذا فشل `dlopen` فالحالة الصادقة هي `DYLIB LOADED = FAILED`، ولا يُعد وجود الملف داخل IPA دليلًا على التنفيذ.
+This proves the Simulator app could be signed, installed, launched, and screenshotted after the TigerCore framework install name was corrected to `@rpath/TigerCore.framework/TigerCore`. It does not prove device dylib execution.
+
+## Required device evidence
+
+After owner eSign installation, open Diagnostics and export:
+
+```text
+device-runtime.json
+device-console.log
+DEVICE_RUNTIME_VERIFICATION.md
+```
+
+The final device report must include real timestamps and log lines for the six milestones, the actual dylib path, `dlopen`, `dlerror`, each `dlsym`, Core version, app version, iOS version, device identifier, and last runtime error. No tokens, cookies, credentials, or private user data may be included.
 
 ## Current conclusion
 
 | Item | Result |
 |---|---|
-| Constructor sets UI milestones | NO — explicitly guarded |
-| Host owns UI milestone updates | YES — source verified |
-| Retained `dlopen` handle | YES — no `dlclose` path |
-| `dlerror()` and `dlsym` reporting | YES — source verified |
-| Simulator device dylib load | SKIPPED by guard |
-| Real dylib symbol inspection | NOT VERIFIED in Linux |
-| Real Host launch log | NOT CAPTURED |
-| `XCODE VERIFIED` | NO |
-| Real-device test | NOT RUN |
+| Constructor sets UI milestones | **NO** |
+| Host owns UI milestone updates | **YES** |
+| Retained `dlopen` handle | **YES** |
+| `dlerror()` and `dlsym` reporting | **YES** |
+| TigerCore runtime install name | **FIXED to @rpath** |
+| Simulator smoke | **SUCCEEDED** |
+| Device dylib runtime | **NOT VERIFIED** |
+| Real Host launch log from iPhone | **NOT CAPTURED** |
+| `TIKTIGER RUNTIME VERIFIED` | **NO** |
+| `XCODE VERIFIED` | **YES** |
 
-## مراجع داخلية
+## References
 
 [1]: Tiktiger_1.1/TiktigerHost/TigerHost/TiktigerRuntimeCoordinator.swift
 [2]: Tiktiger_1.1/Xcode_Dylib_Project/TiktigerDylib/src/TiktigerRuntime.c
 [3]: Tiktiger_1.1/Xcode_Dylib_Project/TiktigerDylib/include/Tiktiger.h
 [4]: .github/workflows/build-tiktiger-ios.yml
+[5]: Tiktiger_1.1/TiktigerHost/TiktigerHost.xcodeproj/project.pbxproj
 
-الأدلة: [Host coordinator][1]، [C instrumentation][2]، [public contract][3]، و[macOS workflow][4].
+الأدلة المصدرية هي [1]–[5]، والدليل التنفيذي هو `verification.txt`, `symbol_status.txt`, و`runtime_smoke_test.txt` داخل artifact run `32389935401`.

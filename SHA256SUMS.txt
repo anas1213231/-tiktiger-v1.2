@@ -1,0 +1,23 @@
+# Tiktiger 1.1 — SHA-256 Checksums
+
+## Approved dylib
+
+```text
+c74d63937efdb58421382910e0de0c5cd23dd8ee046c986f8f4698e678a31c80  Tiktiger_1.1/Xcode_Dylib_Project/BuildOutput/Tiktiger.dylib
+```
+
+## GitHub Actions run 32389935401 artifact
+
+```text
+5c80dce844e788cb949e28d9991df0846ff3496d6e6fe124ccfb60cca19eccb1  unsigned_ipa/TiktigerHost-unsigned-signable.ipa
+b8d484b3cc3ae99382ecff4219dfcf82c8c846e76473de67f6bc6690bb3b0d33  verification.txt
+1e8a4e698b2ed090aaacd293de0f5f20a1147f2fdd1ec030a5d7eb4ce8fa53cf  symbol_status.txt
+6631589631fee40516ff475cc27e721a7321487c34ae4e5d6ac9643045084cfd  host_build.log
+47009a1121abfc07d01c0b3510f6a208761bf1631979b78686f6d861404050be  simulator_build.log
+1ee643957ff8a7edc698750fef462ad801c149cfa2d80f127d3ddb2c139014e8  runtime_smoke_test.txt
+da9c129e7410d90068f1b0077ed1c6c7c81badb7dfe35b13fde0af7b5a3d3a79  runtime_console.log
+```
+
+## Integrity boundary
+
+The dylib hash is the approved pre-eSign hash. eSign will change the final IPA signature and therefore the final signed IPA hash; it must not replace or rebuild the embedded dylib.
