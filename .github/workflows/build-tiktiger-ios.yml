@@ -283,6 +283,72 @@ jobs:
             echo 'EMBED FAILED' > "$GITHUB_WORKSPACE/host_embedding_status.txt"
           fi
 
+      - name: Package unsigned signable IPA from verified iphoneos Host
+        shell: bash
+        run: |
+          set -euo pipefail
+          HOST_DIR="$GITHUB_WORKSPACE/Tiktiger_1.1/TiktigerHost"
+          HOST_DERIVED="$HOST_DIR/Build/.DerivedData"
+          PACKAGE_DIR="$GITHUB_WORKSPACE/unsigned_ipa"
+          IPA_ROOT="$PACKAGE_DIR/ipa_root"
+          IPA_PATH="$PACKAGE_DIR/TiktigerHost-unsigned-signable.ipa"
+          APP_PATH="$(find "$HOST_DERIVED/Build/Products" -type d -path '*/Release-iphoneos/TiktigerHost.app' -print -quit)"
+          DYLIB_PATH="$APP_PATH/Frameworks/Tiktiger.dylib"
+          CORE_PLIST="$APP_PATH/Frameworks/TigerCore.framework/Info.plist"
+          APP_PLIST="$APP_PATH/Info.plist"
+
+          test "$(cat "$GITHUB_WORKSPACE/host_build_status.txt")" = 'BUILD SUCCEEDED'
+          test "$(cat "$GITHUB_WORKSPACE/host_embedding_status.txt")" = 'EMBED SUCCEEDED'
+          test -d "$APP_PATH"
+          test -s "$DYLIB_PATH"
+          test -f "$APP_PLIST"
+          test -f "$CORE_PLIST"
+
+          EXPECTED_SHA='c74d63937efdb58421382910e0de0c5cd23dd8ee046c986f8f4698e678a31c80'
+          ACTUAL_SHA="$(shasum -a 256 "$DYLIB_PATH" | awk '{print $1}')"
+          test "$ACTUAL_SHA" = "$EXPECTED_SHA"
+
+          APP_BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PLIST")"
+          CORE_BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$CORE_PLIST")"
+          test "$APP_BUNDLE_ID" = 'com.ucorc.Tiktiger'
+          test "$CORE_BUNDLE_ID" = 'com.ucorc.TiktigerCore'
+          /usr/libexec/PlistBuddy -c 'Print :NSPhotoLibraryAddUsageDescription' "$APP_PLIST" >/dev/null
+          /usr/libexec/PlistBuddy -c 'Print :NSFaceIDUsageDescription' "$APP_PLIST" >/dev/null
+
+          file "$DYLIB_PATH" | grep -Eiq 'Mach-O.*(arm64|64-bit)'
+          lipo -archs "$DYLIB_PATH" | grep -Eq '^arm64$'
+          otool -L "$DYLIB_PATH" | grep -Fq '@rpath/Tiktiger.dylib'
+          otool -L "$APP_PATH/TiktigerHost" | grep -Fq '@rpath/Tiktiger.dylib'
+          otool -l "$APP_PATH/TiktigerHost" | grep -A2 -F 'LC_RPATH' | grep -Fq '@executable_path/Frameworks'
+
+          rm -rf "$PACKAGE_DIR"
+          mkdir -p "$IPA_ROOT/Payload"
+          ditto "$APP_PATH" "$IPA_ROOT/Payload/TiktigerHost.app"
+          find "$IPA_ROOT/Payload/TiktigerHost.app" -type d -name '_CodeSignature' -prune -exec rm -rf {} +
+          find "$IPA_ROOT/Payload/TiktigerHost.app" -type f -name 'embedded.mobileprovision' -delete
+          test -d "$IPA_ROOT/Payload/TiktigerHost.app/Frameworks"
+          test -s "$IPA_ROOT/Payload/TiktigerHost.app/Frameworks/Tiktiger.dylib"
+          test "$(shasum -a 256 "$IPA_ROOT/Payload/TiktigerHost.app/Frameworks/Tiktiger.dylib" | awk '{print $1}')" = "$EXPECTED_SHA"
+          (cd "$IPA_ROOT" && zip -qry "$IPA_PATH" Payload)
+          test -s "$IPA_PATH"
+          rm -rf "$IPA_ROOT"
+
+          {
+            echo 'IPA STATUS: UNSIGNED / SIGNABLE'
+            echo 'FINAL SIGNING: DEFERRED TO OWNER eSign'
+            echo "APP BUNDLE IDENTIFIER: $APP_BUNDLE_ID"
+            echo "CORE BUNDLE IDENTIFIER: $CORE_BUNDLE_ID"
+            echo "EMBEDDED DYLIB SHA-256: $ACTUAL_SHA"
+            echo 'EMBEDDED DYLIB PATH: Payload/TiktigerHost.app/Frameworks/Tiktiger.dylib'
+            echo 'DYLIB INSTALL NAME: @rpath/Tiktiger.dylib'
+            echo 'HOST RPATH: @executable_path/Frameworks'
+            echo 'PHOTOS USAGE DESCRIPTION: PRESENT'
+            echo 'FACE ID USAGE DESCRIPTION: PRESENT'
+            echo 'ENTITLEMENTS: NONE REQUIRED; SOURCE ENTITLEMENTS FILE IS EMPTY'
+            echo 'CODE SIGNING BYPASS: NOT USED'
+            echo 'REAL DEVICE RUNTIME: PENDING OWNER INSTALLATION'
+          } > "$PACKAGE_DIR/IPA_MANIFEST.txt"
+
       - name: Build TiktigerHost for iphonesimulator without device dylib
         shell: bash
         run: |
@@ -473,3 +539,5 @@ jobs:
             runtime_screenshot.png
             runtime_smoke_status.txt
             simulator_signing_status.txt
+            unsigned_ipa/TiktigerHost-unsigned-signable.ipa
+            unsigned_ipa/IPA_MANIFEST.txt
