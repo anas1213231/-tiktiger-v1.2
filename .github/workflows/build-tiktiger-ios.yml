@@ -428,7 +428,7 @@ jobs:
             BOOTED_STATUS=1
             for boot_attempt in $(seq 1 60); do
               echo "SIMULATOR BOOT POLL: $boot_attempt" >> "$SMOKE_LOG"
-              if xcrun simctl list devices available 2>>"$SMOKE_LOG" | grep -F "$DEVICE_ID" | grep -Fq '(Booted)'; then
+              if xcrun simctl list devices available 2>>"$SMOKE_LOG" | awk -v id="$DEVICE_ID" '$0 ~ id && $0 ~ /\(Booted\)/ {found=1} END {exit found ? 0 : 1}'; then
                 BOOTED_STATUS=0
                 break
               fi
