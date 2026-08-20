@@ -480,7 +480,9 @@ jobs:
               SMOKE_STATUS=1
               echo 'UI SCREENSHOT: FAILED' >> "$SMOKE_REPORT"
             fi
-            xcrun simctl spawn "$DEVICE_ID" log show --last 2m --style compact --predicate 'process == "TiktigerHost"' >> "$SMOKE_LOG" 2>&1 || true
+            xcrun simctl spawn "$DEVICE_ID" log show --last 5m --style compact --predicate 'eventMessage CONTAINS[c] "Tiktiger" OR eventMessage CONTAINS[c] "crash" OR eventMessage CONTAINS[c] "exception" OR eventMessage CONTAINS[c] "fatal" OR process == "TiktigerHost"' >> "$SMOKE_LOG" 2>&1 || true
+            mkdir -p "$GITHUB_WORKSPACE/simulator_crash_reports"
+            find "$HOME/Library/Logs/DiagnosticReports" -type f -mmin -10 -iname '*Tiktiger*' -exec cp -f {} "$GITHUB_WORKSPACE/simulator_crash_reports/" \; 2>/dev/null || true
             if grep -Eiq 'Device-only Tiktiger.dylib load skipped|simulator_device_load' "$SMOKE_LOG"; then
               echo 'SIMULATOR GUARD MILESTONE: VERIFIED — device dylib load skipped' >> "$SMOKE_REPORT"
             else
@@ -501,7 +503,9 @@ jobs:
           echo 'SMOKE REPORT (stdout):'
           cat "$SMOKE_REPORT"
           echo 'SMOKE CONSOLE TAIL (stdout):'
-          tail -n 100 "$SMOKE_LOG" || true
+          tail -n 160 "$SMOKE_LOG" || true
+          echo 'SIMULATOR CRASH REPORTS (stdout):'
+          find "$GITHUB_WORKSPACE/simulator_crash_reports" -type f -maxdepth 1 -print -exec sed -n '1,220p' {} \; 2>/dev/null || true
           if test "$SMOKE_STATUS" -ne 0; then
             echo 'FAILED' > "$GITHUB_WORKSPACE/runtime_smoke_status.txt"
             exit 1
@@ -564,6 +568,7 @@ jobs:
             runtime_smoke_test.txt
             runtime_console.log
             runtime_screenshot.png
+            simulator_crash_reports
             runtime_smoke_status.txt
             simulator_signing_status.txt
             unsigned_ipa/TiktigerHost-unsigned-signable.ipa
