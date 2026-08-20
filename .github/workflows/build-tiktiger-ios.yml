@@ -312,10 +312,88 @@ jobs:
             SIM_STATUS=1
           fi
           if test "$SIM_STATUS" -eq 0; then
+            SIM_APP="$(find "$SIM_DERIVED/Build/Products" -type d -path '*/Debug-iphonesimulator/TiktigerHost.app' -print -quit)"
+            if test -z "$SIM_APP"; then
+              SIM_STATUS=1
+            else
+              mkdir -p "$GITHUB_WORKSPACE/simulator_app"
+              ditto "$SIM_APP" "$GITHUB_WORKSPACE/simulator_app/TiktigerHost.app"
+              printf 'Simulator app: %s\n' "$SIM_APP" > "$GITHUB_WORKSPACE/simulator_app_path.txt"
+            fi
+          fi
+          if test "$SIM_STATUS" -eq 0; then
             echo 'BUILD SUCCEEDED' > "$GITHUB_WORKSPACE/simulator_build_status.txt"
           else
             echo 'BUILD FAILED' > "$GITHUB_WORKSPACE/simulator_build_status.txt"
           fi
+
+      - name: Runtime smoke test on iOS Simulator
+        if: ${{ success() }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          SMOKE_STATUS=0
+          SMOKE_LOG="$GITHUB_WORKSPACE/runtime_console.log"
+          SMOKE_REPORT="$GITHUB_WORKSPACE/runtime_smoke_test.txt"
+          SCREENSHOT="$GITHUB_WORKSPACE/runtime_screenshot.png"
+          : > "$SMOKE_LOG"
+          : > "$SMOKE_REPORT"
+          if test "$(cat "$GITHUB_WORKSPACE/host_build_status.txt" 2>/dev/null || echo FAILED)" != 'BUILD SUCCEEDED'; then SMOKE_STATUS=1; fi
+          if test "$(cat "$GITHUB_WORKSPACE/simulator_build_status.txt" 2>/dev/null || echo FAILED)" != 'BUILD SUCCEEDED'; then SMOKE_STATUS=1; fi
+          DEVICE_ID="$(xcrun simctl list devices available | grep -m 1 -E 'iPhone' | sed -E 's/.*\\(([0-9A-F-]+)\\).*/\\1/')"
+          if test -z "$DEVICE_ID"; then
+            SMOKE_STATUS=1
+            echo 'SIMULATOR DEVICE: NOT FOUND' >> "$SMOKE_REPORT"
+          else
+            xcrun simctl boot "$DEVICE_ID" >/dev/null 2>&1 || true
+            if xcrun simctl bootstatus "$DEVICE_ID" -b >> "$SMOKE_LOG" 2>&1; then
+              echo "SIMULATOR DEVICE: $DEVICE_ID BOOTED" >> "$SMOKE_REPORT"
+            else
+              SMOKE_STATUS=1
+              echo "SIMULATOR DEVICE: $DEVICE_ID BOOT FAILED" >> "$SMOKE_REPORT"
+            fi
+            if xcrun simctl install "$DEVICE_ID" "$GITHUB_WORKSPACE/simulator_app/TiktigerHost.app" >> "$SMOKE_LOG" 2>&1; then
+              echo 'APP INSTALL: SUCCEEDED' >> "$SMOKE_REPORT"
+            else
+              SMOKE_STATUS=1
+              echo 'APP INSTALL: FAILED' >> "$SMOKE_REPORT"
+            fi
+            if xcrun simctl launch "$DEVICE_ID" com.ucorc.Tiktiger >> "$SMOKE_LOG" 2>&1; then
+              echo 'UI LAUNCH: SUCCEEDED' >> "$SMOKE_REPORT"
+            else
+              SMOKE_STATUS=1
+              echo 'UI LAUNCH: FAILED' >> "$SMOKE_REPORT"
+            fi
+            sleep 5
+            if xcrun simctl io "$DEVICE_ID" screenshot "$SCREENSHOT" >> "$SMOKE_LOG" 2>&1; then
+              echo 'UI SCREENSHOT: CAPTURED' >> "$SMOKE_REPORT"
+            else
+              SMOKE_STATUS=1
+              echo 'UI SCREENSHOT: FAILED' >> "$SMOKE_REPORT"
+            fi
+            xcrun simctl spawn "$DEVICE_ID" log show --last 2m --style compact --predicate 'process == "TiktigerHost"' >> "$SMOKE_LOG" 2>&1 || true
+            if grep -Eiq 'Device-only Tiktiger.dylib load skipped|simulator_device_load' "$SMOKE_LOG"; then
+              echo 'SIMULATOR GUARD MILESTONE: VERIFIED — device dylib load skipped' >> "$SMOKE_REPORT"
+            else
+              echo 'SIMULATOR GUARD MILESTONE: NOT CAPTURED' >> "$SMOKE_REPORT"
+            fi
+          fi
+          {
+            echo 'RUNTIME SMOKE TEST: SIMULATOR ONLY'
+            cat "$SMOKE_REPORT"
+            echo 'DEVICE DYLIB LOADED: NOT VERIFIED — simulator guard intentionally skips device dylib'
+            echo 'INITIALIZER EXECUTED: NOT VERIFIED on simulator'
+            echo 'CORE STARTED: NOT VERIFIED on simulator'
+            echo 'FEATURE REGISTRY READY: NOT VERIFIED on simulator'
+            echo 'UI REGISTERED: UI launch/screenshot exercised; Host hierarchy milestone not claimed from log alone'
+            echo 'UI PRESENTED: NOT VERIFIED by Host hierarchy probe'
+          } > "$SMOKE_REPORT.tmp"
+          mv "$SMOKE_REPORT.tmp" "$SMOKE_REPORT"
+          if test "$SMOKE_STATUS" -ne 0; then
+            echo 'FAILED' > "$GITHUB_WORKSPACE/runtime_smoke_status.txt"
+            exit 1
+          fi
+          echo 'SUCCEEDED' > "$GITHUB_WORKSPACE/runtime_smoke_status.txt"
 
       - name: Finalize verification and enforce build status
         if: ${{ always() }}
@@ -331,13 +409,21 @@ jobs:
             echo "HOST DEVICE BUILD: $HOST_STATUS"
             if test -f "$GITHUB_WORKSPACE/host_embedding_status.txt"; then echo "HOST DYLIB EMBEDDING: $(cat "$GITHUB_WORKSPACE/host_embedding_status.txt")"; fi
             echo "HOST SIMULATOR BUILD: $SIM_STATUS"
-            echo 'RUNTIME: DEVICE RUNTIME NOT VERIFIED — this build-only workflow does not launch the app.'
-            echo 'Runtime milestones: NOT CAPTURED in build-only job; requires app launch and Host Console log'
-            echo 'REMAINING WORK: Run a real device/simulator smoke test and collect Host Console milestones.'
+            echo 'RUNTIME: SIMULATOR SMOKE TEST RECORDED; DEVICE RUNTIME NOT VERIFIED'
+            echo 'Runtime milestones: NOT CAPTURED in build-only job; simulator smoke test is separate'
+            echo 'Runtime milestones: DEVICE DYLIB/CORE/REGISTRY/UI HIERARCHY NOT VERIFIED on simulator due device-only load guard'
+            if test -f "$GITHUB_WORKSPACE/runtime_smoke_test.txt"; then
+              echo 'Runtime smoke report:'
+              cat "$GITHUB_WORKSPACE/runtime_smoke_test.txt"
+            fi
+            echo 'REMAINING WORK: Real-device runtime smoke test with Host Console milestones and view-hierarchy confirmation.'
           } >> "$VERIFICATION"
           HOST_EMBED_STATUS='EMBED FAILED'
           if test -f "$GITHUB_WORKSPACE/host_embedding_status.txt"; then HOST_EMBED_STATUS="$(cat "$GITHUB_WORKSPACE/host_embedding_status.txt")"; fi
-          if test "$HOST_STATUS" = 'BUILD SUCCEEDED' && test "$HOST_EMBED_STATUS" = 'EMBED SUCCEEDED' && test "$SIM_STATUS" = 'BUILD SUCCEEDED'; then
+          SMOKE_STATUS='NOT RUN'
+          if test -f "$GITHUB_WORKSPACE/runtime_smoke_status.txt"; then SMOKE_STATUS="$(cat "$GITHUB_WORKSPACE/runtime_smoke_status.txt")"; fi
+          echo "RUNTIME SMOKE STATUS: $SMOKE_STATUS" >> "$VERIFICATION"
+          if test "$HOST_STATUS" = 'BUILD SUCCEEDED' && test "$HOST_EMBED_STATUS" = 'EMBED SUCCEEDED' && test "$SIM_STATUS" = 'BUILD SUCCEEDED' && test "$SMOKE_STATUS" = 'SUCCEEDED'; then
             exit 0
           fi
           exit 1
@@ -360,3 +446,9 @@ jobs:
             dylib_product_path.txt
             host_build_status.txt
             simulator_build_status.txt
+            simulator_app/TiktigerHost.app
+            simulator_app_path.txt
+            runtime_smoke_test.txt
+            runtime_console.log
+            runtime_screenshot.png
+            runtime_smoke_status.txt
