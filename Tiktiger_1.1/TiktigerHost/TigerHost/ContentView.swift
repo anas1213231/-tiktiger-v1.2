@@ -182,11 +182,15 @@ struct ContentView: View {
                 Text(enabled ? "Ready to use" : "Tiktiger is disabled")
                     .font(.subheadline.weight(.semibold))
                 Spacer()
-                Toggle("", isOn: $enabled)
-                    .labelsHidden()
-                    .onChange(of: enabled) { value in
-                        TigerManager.shared.isEnabled = value
-                    }
+                    Toggle("", isOn: $enabled)
+                        .labelsHidden()
+                        .onChange(of: enabled) { value in
+                            let diagnostics = TiktigerDeviceDiagnostics.shared
+                            diagnostics.recordFeatureEvent(feature: "Master Switch", event: "action_started", detail: value ? "enable" : "disable")
+                            diagnostics.recordFeatureEvent(feature: "Master Switch", event: "service_called", detail: "TigerManager.shared.isEnabled")
+                            TigerManager.shared.isEnabled = value
+                            diagnostics.recordFeatureEvent(feature: "Master Switch", event: "result_success", detail: "Host setting updated")
+                        }
             }
         }
         .padding(18)
@@ -386,6 +390,7 @@ private struct QuickActionButton: View {
 }
 
 private struct AppearanceSectionView: View {
+    @ObservedObject private var diagnostics = TiktigerDeviceDiagnostics.shared
     @AppStorage("tiktiger.appearance.liquidControls") private var liquidControls = false
     @AppStorage("tiktiger.appearance.liquidNotices") private var liquidNotices = false
     @AppStorage("tiktiger.appearance.liquidOverlays") private var liquidOverlays = false
@@ -417,8 +422,11 @@ private struct AppearanceSectionView: View {
         List {
             Section("Glass Interface") {
                 Toggle("Liquid Glass Controls", isOn: $liquidControls)
+                    .onChange(of: liquidControls) { value in auditAppearance("liquidControls", value: value) }
                 Toggle("Liquid Glass Notices", isOn: $liquidNotices)
+                    .onChange(of: liquidNotices) { value in auditAppearance("liquidNotices", value: value) }
                 Toggle("Liquid Glass Overlays", isOn: $liquidOverlays)
+                    .onChange(of: liquidOverlays) { value in auditAppearance("liquidOverlays", value: value) }
             }
             Section("Stories") {
                 Picker("Gradient Style", selection: $gradient) {
@@ -427,10 +435,17 @@ private struct AppearanceSectionView: View {
                     Text("Blue Gradient").tag("Blue Gradient")
                     Text("Pink Gradient").tag("Pink Gradient")
                 }
+                .onChange(of: gradient) { value in
+                    diagnostics.recordFeatureEvent(feature: "Appearance", event: "action_started", detail: "gradient=\(value)")
+                    diagnostics.recordFeatureEvent(feature: "Appearance", event: "service_called", detail: "AppStorage")
+                    diagnostics.recordFeatureEvent(feature: "Appearance", event: "result_success", detail: "Gradient saved")
+                }
             }
             Section("Keyboard") {
                 Toggle("OLED Keyboard", isOn: $oledKeyboard)
+                    .onChange(of: oledKeyboard) { value in auditAppearance("oledKeyboard", value: value) }
                 ColorPicker("Accent Color", selection: accentColor, supportsOpacity: false)
+                    .onChange(of: red) { _ in auditAppearance("accentColor", value: true) }
             }
             Section {
                 Button("Reset Appearance", role: .destructive) {
@@ -448,9 +463,16 @@ private struct AppearanceSectionView: View {
         .navigationTitle("Appearance")
         .navigationBarTitleDisplayMode(.inline)
     }
+
+    private func auditAppearance(_ control: String, value: Bool) {
+        diagnostics.recordFeatureEvent(feature: "Appearance", event: "action_started", detail: "\(control)=\(value)")
+        diagnostics.recordFeatureEvent(feature: "Appearance", event: "service_called", detail: "AppStorage")
+        diagnostics.recordFeatureEvent(feature: "Appearance", event: "result_success", detail: "Appearance setting saved")
+    }
 }
 
 private struct TranslationSectionView: View {
+    @ObservedObject private var diagnostics = TiktigerDeviceDiagnostics.shared
     @AppStorage("tiktiger.language") private var language = "en"
 
     var body: some View {
@@ -463,6 +485,11 @@ private struct TranslationSectionView: View {
                     Text("Tiếng Việt").tag("vi")
                 }
                 .pickerStyle(.inline)
+                .onChange(of: language) { value in
+                    diagnostics.recordFeatureEvent(feature: "Translation", event: "action_started", detail: "language=\(value)")
+                    diagnostics.recordFeatureEvent(feature: "Translation", event: "service_called", detail: "AppStorage")
+                    diagnostics.recordFeatureEvent(feature: "Translation", event: "result_success", detail: "Language preference saved")
+                }
             }
             Section {
                 Text("Language preference is saved locally. A full host-app localization pass will apply the selected language after the next launch.")
@@ -507,14 +534,21 @@ private struct FeatureSectionView: View {
 }
 
 private enum TiktigerLocalAuth {
-    static func authenticate(completion: @escaping (Bool) -> Void) {
+    static func authenticate(feature: String, completion: @escaping (Bool) -> Void) {
+        let diagnostics = TiktigerDeviceDiagnostics.shared
+        diagnostics.recordFeatureEvent(feature: feature, event: "action_started", detail: "authentication requested")
         let context = LAContext()
         var error: NSError?
         guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) else {
+            let message = error?.localizedDescription ?? "Local authentication unavailable"
+            diagnostics.recordFeatureEvent(feature: feature, event: "result_failed", detail: message)
             completion(false)
             return
         }
-        context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Unlock Tiktiger protected content") { success, _ in
+        diagnostics.recordFeatureEvent(feature: feature, event: "service_called", detail: "LocalAuthentication")
+        context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Unlock Tiktiger protected content") { success, evaluationError in
+            let message = evaluationError?.localizedDescription ?? (success ? "Authentication accepted" : "Authentication rejected")
+            diagnostics.recordFeatureEvent(feature: feature, event: success ? "result_success" : "result_failed", detail: message)
             completion(success)
         }
     }
@@ -543,7 +577,8 @@ private struct TiktigerFeatureRow: View {
                 TigerManager.shared.setFeatureEnabled(value, forKey: feature.id)
                 return
             }
-            TiktigerLocalAuth.authenticate { success in
+            let auditFeature = feature.id == "lockChats" ? "Chats Lock" : "Favorites Lock"
+            TiktigerLocalAuth.authenticate(feature: auditFeature) { success in
                 DispatchQueue.main.async {
                     guard success else { return }
                     let runtime = TiktigerRuntimeCoordinator.shared
@@ -655,6 +690,8 @@ private struct DownloadCenterView: View {
 
                     if service.lastFileURL != nil {
                         Button {
+                            TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "Share", event: "action_started", detail: "share sheet requested")
+                            TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "Share", event: "service_called", detail: "UIActivityViewController")
                             showShare = true
                         } label: {
                             Label("Share M4A", systemImage: "square.and.arrow.up")
@@ -781,6 +818,10 @@ private struct TiktigerDiagnosticRow: View {
 private struct DiagnosticsView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var runtime = TiktigerRuntimeCoordinator.shared
+    @ObservedObject private var deviceDiagnostics = TiktigerDeviceDiagnostics.shared
+    @State private var exportedReportURLs: [URL] = []
+    @State private var showExportShare = false
+    @State private var exportError = ""
 
     private let modules: [TiktigerDiagnostic] = [
         TiktigerDiagnostic(id: "settings", title: "Settings UI", state: "IMPLEMENTED BUT NOT TESTED", icon: "checkmark.circle.fill", color: .orange),
@@ -867,6 +908,61 @@ private struct DiagnosticsView: View {
                         }
                     }
                 }
+                Section("Runtime Verification") {
+                    ForEach(deviceDiagnostics.milestoneReports) { milestone in
+                        VStack(alignment: .leading, spacing: 3) {
+                            HStack {
+                                Text(milestone.name)
+                                    .font(.subheadline.weight(.semibold))
+                                Spacer()
+                                Text(milestone.state)
+                                    .font(.caption.weight(.bold))
+                                    .foregroundColor(milestone.state == "VERIFIED" ? .green : (milestone.state == "FAILED" ? .red : .orange))
+                            }
+                            Text("\(milestone.timestamp ?? \"NOT REACHED\") · \(milestone.detail ?? \"NOT REACHED\")")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    TiktigerDiagnosticRow(title: "Dylib Path", value: deviceDiagnostics.dylibPath.isEmpty ? "NONE" : deviceDiagnostics.dylibPath)
+                    TiktigerDiagnosticRow(title: "Dylib SHA-256", value: deviceDiagnostics.dylibSHA256.isEmpty ? "NOT AVAILABLE" : deviceDiagnostics.dylibSHA256)
+                    TiktigerDiagnosticRow(title: "dlopen", value: deviceDiagnostics.dlopenResult)
+                    TiktigerDiagnosticRow(title: "Core Version", value: deviceDiagnostics.coreVersion)
+                    TiktigerDiagnosticRow(title: "App / iOS", value: "\(deviceDiagnostics.appVersion) / \(deviceDiagnostics.iOSVersion)")
+                    TiktigerDiagnosticRow(title: "Device Model", value: deviceDiagnostics.deviceModelIdentifier)
+                    TiktigerDiagnosticRow(title: "Last dlerror", value: deviceDiagnostics.lastDlError.isEmpty ? "NONE" : deviceDiagnostics.lastDlError)
+                    TiktigerDiagnosticRow(title: "Last Runtime Error", value: deviceDiagnostics.lastRuntimeError.isEmpty ? "NONE" : deviceDiagnostics.lastRuntimeError)
+                    Button {
+                        do {
+                            exportedReportURLs = try deviceDiagnostics.exportRuntimeReport()
+                            exportError = ""
+                            showExportShare = true
+                        } catch {
+                            exportError = error.localizedDescription
+                        }
+                    } label: {
+                        Label("Export Runtime Report", systemImage: "square.and.arrow.up")
+                    }
+                    if !exportError.isEmpty {
+                        Text(exportError)
+                            .font(.footnote)
+                            .foregroundColor(.red)
+                    }
+                }
+                Section("Feature Runtime Audit") {
+                    ForEach(["Master Switch", "Appearance", "Translation", "Download", "Photos", "M4A", "Share", "Face ID", "Chats Lock", "Favorites Lock"], id: \.self) { feature in
+                        TiktigerDiagnosticRow(title: feature, value: deviceDiagnostics.featureStatus(for: feature))
+                    }
+                    ForEach(Array(deviceDiagnostics.featureAuditEvents.suffix(80))) { event in
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("\(event.feature) · \(event.event)")
+                                .font(.caption.weight(.semibold))
+                            Text("\(event.timestamp) · \(event.detail)")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
                 Section("Modules") {
                     ForEach(modules) { module in
                         HStack(spacing: 12) {
@@ -896,6 +992,9 @@ private struct DiagnosticsView: View {
                     Button("Done") { dismiss() }
                 }
             }
+        }
+        .sheet(isPresented: $showExportShare) {
+            TiktigerShareSheet(items: exportedReportURLs.map { $0 as Any })
         }
     }
 }

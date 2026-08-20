@@ -104,6 +104,10 @@ final class TiktigerMediaDownloadService: ObservableObject {
     }
 
     func download(urlString: String, mode: String) {
+        let diagnostics = TiktigerDeviceDiagnostics.shared
+        let feature = mode == "audio" ? "M4A" : "Download"
+        diagnostics.recordFeatureEvent(feature: feature, event: "action_started", detail: "direct HTTPS download requested")
+        diagnostics.recordFeatureEvent(feature: feature, event: "service_called", detail: "TiktigerMediaDownloadService")
         cancel(silent: true)
         lastError = nil
         lastFileURL = nil
@@ -118,11 +122,17 @@ final class TiktigerMediaDownloadService: ObservableObject {
     }
 
     func retryLast() {
-        guard let retryURL = lastRetryURL, let record = history.first else { return }
+        guard let retryURL = lastRetryURL, let record = history.first else {
+            TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "Download", event: "result_failed", detail: "No retryable download")
+            return
+        }
+        TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "Download", event: "action_started", detail: "retry requested")
+        TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "Download", event: "service_called", detail: "retryLast")
         download(urlString: retryURL, mode: record.mode)
     }
 
     func cancel() {
+        TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "Download", event: "action_started", detail: "cancel requested")
         cancel(silent: false)
     }
 
@@ -140,6 +150,7 @@ final class TiktigerMediaDownloadService: ObservableObject {
         isBusy = false
         updateStage("Cancelled", runtimeStage: 7)
         stateColor = .orange
+        TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "Download", event: "result_success", detail: "cancelled")
     }
 
     private func performDownload(urlString: String, mode: String) async {
@@ -191,6 +202,7 @@ final class TiktigerMediaDownloadService: ObservableObject {
                 let output = try await extractAudio(from: destination)
                 lastFileURL = output
                 updateStage("Audio ready", runtimeStage: 5)
+                TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "M4A", event: "result_success", detail: "AVAssetExportSession created \(output.lastPathComponent)")
                 photoStatus = "Ready to share"
                 stateColor = .green
                 isBusy = false
@@ -198,6 +210,7 @@ final class TiktigerMediaDownloadService: ObservableObject {
             } else {
                 try await saveToPhotos(destination, isVideo: isVideo)
                 updateStage("Completed", runtimeStage: 5)
+                TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "Download", event: "result_success", detail: "media downloaded")
                 photoStatus = "Saved"
                 stateColor = .green
                 isBusy = false
@@ -209,12 +222,15 @@ final class TiktigerMediaDownloadService: ObservableObject {
             updateStage("Cancelled", runtimeStage: 7)
             stateColor = .orange
             downloadTask = nil
+            TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: mode == "audio" ? "M4A" : "Download", event: "result_success", detail: "cancelled")
         } catch {
-            fail(error.localizedDescription)
+            TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: mode == "audio" ? "M4A" : "Download", event: "error", detail: error.localizedDescription)
+            fail(error.localizedDescription, feature: mode == "audio" ? "M4A" : "Download")
         }
     }
 
     private func extractAudio(from videoURL: URL) async throws -> URL {
+        TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "M4A", event: "service_called", detail: "AVAssetExportSession")
         try Task.checkCancellation()
                     updateStage("Extracting Audio", runtimeStage: 3)
 
@@ -249,10 +265,12 @@ final class TiktigerMediaDownloadService: ObservableObject {
     }
 
     private func saveToPhotos(_ fileURL: URL, isVideo: Bool) async throws {
+        TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "Photos", event: "service_called", detail: "PHPhotoLibrary")
         photoStatus = "Requesting"
         let status = await requestPhotoAuthorization()
         guard status == .authorized || status == .limited else {
             photoStatus = "Permission denied"
+            TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "Photos", event: "result_failed", detail: "Photo permission denied")
             throw TiktigerMediaProviderError.photoPermissionDenied
         }
 
@@ -265,8 +283,11 @@ final class TiktigerMediaDownloadService: ObservableObject {
                 request.addResource(with: isVideo ? .video : .photo, fileURL: fileURL, options: nil)
             }) { success, error in
                 if success {
+                    TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "Photos", event: "result_success", detail: "PHAssetCreationRequest completed")
                     continuation.resume()
                 } else {
+                    let detail = error?.localizedDescription ?? "Photo Library save failed"
+                    TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "Photos", event: "result_failed", detail: detail)
                     continuation.resume(throwing: error ?? TiktigerMediaProviderError.photoSaveFailed)
                 }
             }
@@ -316,8 +337,9 @@ final class TiktigerMediaDownloadService: ObservableObject {
         TiktigerRuntimeCoordinator.shared.setDownloadStage(runtimeStage)
     }
 
-    private func fail(_ message: String) {
+    private func fail(_ message: String, feature: String = "Download") {
         lastError = message
+        TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: feature, event: "result_failed", detail: message)
         updateStage(message, runtimeStage: 6)
         stateColor = .red
         isBusy = false
