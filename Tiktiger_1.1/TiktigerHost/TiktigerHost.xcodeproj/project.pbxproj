@@ -21,6 +21,11 @@
 			100000000000000000000095 /* TiktigerRuntimeCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000096 /* TiktigerRuntimeCoordinator.swift */; };
 			100000000000000000000097 /* Tiktiger.dylib in Embed Tiktiger */ = {isa = PBXBuildFile; fileRef = 100000000000000000000098 /* Tiktiger.dylib */; platformFilters = (iphoneos, ); settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 			100000000000000000000099 /* TiktigerDeviceDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000100 /* TiktigerDeviceDiagnostics.swift */; };
+			100000000000000000000108 /* TiktigerSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000101 /* TiktigerSettingsStore.swift */; };
+			100000000000000000000109 /* TiktigerAppearanceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000102 /* TiktigerAppearanceService.swift */; };
+			100000000000000000000110 /* TiktigerLocalizationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000103 /* TiktigerLocalizationService.swift */; };
+			100000000000000000000111 /* TiktigerShareService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000104 /* TiktigerShareService.swift */; };
+			100000000000000000000112 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000107 /* Localizable.strings */; };
 
 /* End PBXBuildFile section */
 
@@ -65,8 +70,19 @@
 			100000000000000000000096 /* TiktigerRuntimeCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TiktigerRuntimeCoordinator.swift; sourceTree = "<group>"; };
 			100000000000000000000098 /* Tiktiger.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = Tiktiger.dylib; sourceTree = "<group>"; };
 			100000000000000000000100 /* TiktigerDeviceDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TiktigerDeviceDiagnostics.swift; sourceTree = "<group>"; };
+			100000000000000000000101 /* TiktigerSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TiktigerSettingsStore.swift; sourceTree = "<group>"; };
+			100000000000000000000102 /* TiktigerAppearanceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TiktigerAppearanceService.swift; sourceTree = "<group>"; };
+			100000000000000000000103 /* TiktigerLocalizationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TiktigerLocalizationService.swift; sourceTree = "<group>"; };
+			100000000000000000000104 /* TiktigerShareService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TiktigerShareService.swift; sourceTree = "<group>"; };
+			100000000000000000000105 /* Localizable.strings en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+			100000000000000000000106 /* Localizable.strings ar */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ar; path = ar.lproj/Localizable.strings; sourceTree = "<group>"; };
 
-/* End PBXFileReference section */
+			100000000000000000000107 /* Localizable.strings */ = {isa = PBXVariantGroup; children = (
+				100000000000000000000105 /* Localizable.strings en */,
+				100000000000000000000106 /* Localizable.strings ar */,
+			); name = Localizable.strings; sourceTree = "<group>"; };
+
+	/* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		100000000000000000000032 /* Frameworks */ = {
@@ -116,8 +132,9 @@
 					100000000000000000000064 /* Resources */,
 					100000000000000000000065 /* Services */,
 					100000000000000000000096 /* TiktigerRuntimeCoordinator.swift */,
-					100000000000000000000100 /* TiktigerDeviceDiagnostics.swift */,
-					100000000000000000000066 /* Runtime */,
+						100000000000000000000100 /* TiktigerDeviceDiagnostics.swift */,
+						100000000000000000000107 /* Localizable.strings */,
+						100000000000000000000066 /* Runtime */,
 					100000000000000000000092 /* Assets.xcassets */,
 				);
 				path = TigerHost;
@@ -146,7 +163,11 @@
 				isa = PBXGroup;
 				children = (
 					100000000000000000000093 /* TiktigerMediaDownloadService.swift */,
-				);
+						100000000000000000000101 /* TiktigerSettingsStore.swift */,
+						100000000000000000000102 /* TiktigerAppearanceService.swift */,
+						100000000000000000000103 /* TiktigerLocalizationService.swift */,
+						100000000000000000000104 /* TiktigerShareService.swift */,
+					);
 				path = Services;
 				sourceTree = "<group>";
 			};
@@ -236,9 +257,10 @@
 			compatibilityVersion = "Xcode 15.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
-			knownRegions = (
-				en,
-				Base,
+				knownRegions = (
+					en,
+					ar,
+					Base,
 			);
 			mainGroup = 100000000000000000000060;
 			productRefGroup = 100000000000000000000063 /* Products */;
@@ -268,9 +290,13 @@
 					100000000000000000000005 /* ContentView.swift in Sources */,
 					100000000000000000000094 /* TiktigerMediaDownloadService.swift in Sources */,
 					100000000000000000000095 /* TiktigerRuntimeCoordinator.swift in Sources */,
-					100000000000000000000099 /* TiktigerDeviceDiagnostics.swift in Sources */,
+						100000000000000000000099 /* TiktigerDeviceDiagnostics.swift in Sources */,
+						100000000000000000000108 /* TiktigerSettingsStore.swift in Sources */,
+						100000000000000000000109 /* TiktigerAppearanceService.swift in Sources */,
+						100000000000000000000110 /* TiktigerLocalizationService.swift in Sources */,
+						100000000000000000000111 /* TiktigerShareService.swift in Sources */,
 
-				);
+					);
 
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -295,8 +321,9 @@
 			files = (
 				100000000000000000000008 /* tiktiger_logo.png in Resources */,
 				100000000000000000000009 /* download_arrow.png in Resources */,
-				100000000000000000000010 /* Assets.xcassets in Resources */,
-			);
+					100000000000000000000010 /* Assets.xcassets in Resources */,
+					100000000000000000000112 /* Localizable.strings in Resources */,
+				);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 	/* End PBXResourcesBuildPhase section */

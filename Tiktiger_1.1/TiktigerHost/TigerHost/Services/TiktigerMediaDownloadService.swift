@@ -92,6 +92,7 @@ final class TiktigerMediaDownloadService: ObservableObject {
     private var downloadTask: Task<Void, Never>?
     private var activeExportSession: AVAssetExportSession?
     private var lastRetryURL: String?
+    private var activeMode = "media"
     private let historyKey = "tiktiger.download.history"
 
     init(provider: TiktigerMediaProvider = TiktigerDirectHTTPSProvider()) {
@@ -111,6 +112,7 @@ final class TiktigerMediaDownloadService: ObservableObject {
         cancel(silent: true)
         lastError = nil
         lastFileURL = nil
+        activeMode = mode
         isBusy = true
         stateColor = .orange
         updateStage("Validating URL", runtimeStage: 1)
@@ -132,13 +134,18 @@ final class TiktigerMediaDownloadService: ObservableObject {
     }
 
     func cancel() {
-        TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "Download", event: "action_started", detail: "cancel requested")
+        TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: activeMode == "audio" ? "M4A" : "Download", event: "action_started", detail: "cancel requested")
+        TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: activeMode == "audio" ? "M4A" : "Download", event: "cancel", detail: "cancel requested")
         cancel(silent: false)
     }
 
     func clearHistory() {
+        TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "Download", event: "action_started", detail: "history clear requested")
+        TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "Download", event: "service_called", detail: "UserDefaults history store")
         history.removeAll()
         saveHistory()
+        TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "Download", event: "persistence_updated", detail: "history cleared")
+        TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "Download", event: "result_success", detail: "history cleared")
     }
 
     private func cancel(silent: Bool) {
@@ -150,7 +157,9 @@ final class TiktigerMediaDownloadService: ObservableObject {
         isBusy = false
         updateStage("Cancelled", runtimeStage: 7)
         stateColor = .orange
-        TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "Download", event: "result_success", detail: "cancelled")
+        let activeFeature = activeMode == "audio" ? "M4A" : "Download"
+        TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: activeFeature, event: "result_success", detail: "cancelled")
+        TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: activeFeature, event: "cancel", detail: "cancelled")
     }
 
     private func performDownload(urlString: String, mode: String) async {
@@ -203,6 +212,7 @@ final class TiktigerMediaDownloadService: ObservableObject {
                 lastFileURL = output
                 updateStage("Audio ready", runtimeStage: 5)
                 TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "M4A", event: "result_success", detail: "AVAssetExportSession created \(output.lastPathComponent)")
+                TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "M4A", event: "success", detail: "validated M4A output exists")
                 photoStatus = "Ready to share"
                 stateColor = .green
                 isBusy = false
@@ -211,6 +221,7 @@ final class TiktigerMediaDownloadService: ObservableObject {
                 try await saveToPhotos(destination, isVideo: isVideo)
                 updateStage("Completed", runtimeStage: 5)
                 TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "Download", event: "result_success", detail: "media downloaded")
+                TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "Download", event: "success", detail: "media saved through Photos")
                 photoStatus = "Saved"
                 stateColor = .green
                 isBusy = false
@@ -223,6 +234,7 @@ final class TiktigerMediaDownloadService: ObservableObject {
             stateColor = .orange
             downloadTask = nil
             TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: mode == "audio" ? "M4A" : "Download", event: "result_success", detail: "cancelled")
+            TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: mode == "audio" ? "M4A" : "Download", event: "cancel", detail: "cancelled")
         } catch {
             TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: mode == "audio" ? "M4A" : "Download", event: "error", detail: error.localizedDescription)
             fail(error.localizedDescription, feature: mode == "audio" ? "M4A" : "Download")
@@ -270,7 +282,8 @@ final class TiktigerMediaDownloadService: ObservableObject {
         let status = await requestPhotoAuthorization()
         guard status == .authorized || status == .limited else {
             photoStatus = "Permission denied"
-            TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "Photos", event: "result_failed", detail: "Photo permission denied")
+                    TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "Photos", event: "result_failed", detail: "Photo permission denied")
+                    TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "Photos", event: "failure", detail: "Photo permission denied")
             throw TiktigerMediaProviderError.photoPermissionDenied
         }
 
@@ -284,10 +297,12 @@ final class TiktigerMediaDownloadService: ObservableObject {
             }) { success, error in
                 if success {
                     TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "Photos", event: "result_success", detail: "PHAssetCreationRequest completed")
+                    TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "Photos", event: "success", detail: "PHAssetCreationRequest completed")
                     continuation.resume()
                 } else {
                     let detail = error?.localizedDescription ?? "Photo Library save failed"
                     TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "Photos", event: "result_failed", detail: detail)
+                    TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: "Photos", event: "failure", detail: detail)
                     continuation.resume(throwing: error ?? TiktigerMediaProviderError.photoSaveFailed)
                 }
             }
@@ -321,6 +336,7 @@ final class TiktigerMediaDownloadService: ObservableObject {
         history.insert(record, at: 0)
         history = Array(history.prefix(20))
         saveHistory()
+        TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: mode == "audio" ? "M4A" : "Download", event: "persistence_updated", detail: "history record saved")
     }
 
     private func sanitizedDisplayURL(for url: URL) -> String {
@@ -335,11 +351,17 @@ final class TiktigerMediaDownloadService: ObservableObject {
     private func updateStage(_ value: String, runtimeStage: Int32) {
         stage = value
         TiktigerRuntimeCoordinator.shared.setDownloadStage(runtimeStage)
+        TiktigerDeviceDiagnostics.shared.recordFeatureEvent(
+            feature: activeMode == "audio" ? "M4A" : "Download",
+            event: "state_changed",
+            detail: value
+        )
     }
 
     private func fail(_ message: String, feature: String = "Download") {
         lastError = message
         TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: feature, event: "result_failed", detail: message)
+        TiktigerDeviceDiagnostics.shared.recordFeatureEvent(feature: feature, event: "failure", detail: message)
         updateStage(message, runtimeStage: 6)
         stateColor = .red
         isBusy = false

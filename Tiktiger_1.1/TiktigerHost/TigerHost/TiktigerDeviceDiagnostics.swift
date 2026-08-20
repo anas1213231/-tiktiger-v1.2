@@ -93,13 +93,13 @@ final class TiktigerDeviceDiagnostics: ObservableObject {
     ]
 
     private static let baselineFeatureStatus: [String: String] = [
-        "Master Switch": "DEVICE TEST REQUIRED",
-        "Appearance": "DEVICE TEST REQUIRED",
-        "Translation": "PARTIAL",
+        "Master Switch": "IMPLEMENTED NOT TESTED",
+        "Appearance": "IMPLEMENTED NOT TESTED",
+        "Translation": "IMPLEMENTED NOT TESTED",
         "Download": "PROVIDER REQUIRED",
         "Photos": "DEVICE TEST REQUIRED",
         "M4A": "DEVICE TEST REQUIRED",
-        "Share": "PARTIAL",
+        "Share": "IMPLEMENTED NOT TESTED",
         "Face ID": "DEVICE TEST REQUIRED",
         "Chats Lock": "DEVICE TEST REQUIRED",
         "Favorites Lock": "DEVICE TEST REQUIRED"
@@ -186,7 +186,7 @@ final class TiktigerDeviceDiagnostics: ObservableObject {
     }
 
     func recordFeatureEvent(feature: String, event: String, detail: String = "") {
-        let allowedEvents = ["action_started", "service_called", "result_success", "result_failed", "error"]
+        let allowedEvents = ["action_started", "service_called", "state_changed", "persistence_updated", "registry_updated", "result_success", "result_failed", "success", "failure", "cancel", "error"]
         let normalizedEvent = allowedEvents.contains(event) ? event : "error"
         let audit = TiktigerFeatureAuditEvent(
             id: UUID(),
@@ -196,9 +196,9 @@ final class TiktigerDeviceDiagnostics: ObservableObject {
             detail: sanitized(detail)
         )
         featureAuditEvents.append(audit)
-        if normalizedEvent == "result_success" {
+        if normalizedEvent == "result_success" || normalizedEvent == "success" {
             lastFeatureStatus[feature] = "VERIFIED"
-        } else if normalizedEvent == "result_failed" || normalizedEvent == "error" {
+        } else if normalizedEvent == "result_failed" || normalizedEvent == "failure" || normalizedEvent == "error" {
             lastFeatureStatus[feature] = "FAILED"
         }
         appendConsoleLine("feature=\(audit.feature) event=\(audit.event) detail=\(audit.detail)")
@@ -218,12 +218,6 @@ final class TiktigerDeviceDiagnostics: ObservableObject {
     }
 
     func featureStatus(for feature: String) -> String {
-        if feature == "Translation" {
-            return "PARTIAL"
-        }
-        if feature == "Share", lastFeatureStatus[feature] == "VERIFIED" {
-            return "PARTIAL"
-        }
         if let status = lastFeatureStatus[feature] {
             return status
         }
@@ -365,8 +359,8 @@ final class TiktigerDeviceDiagnostics: ObservableObject {
            let value = try? JSONDecoder().decode([TiktigerFeatureAuditEvent].self, from: data) {
             featureAuditEvents = value
             for item in value {
-                if item.event == "result_success" { lastFeatureStatus[item.feature] = "VERIFIED" }
-                if item.event == "result_failed" || item.event == "error" { lastFeatureStatus[item.feature] = "FAILED" }
+                if item.event == "result_success" || item.event == "success" { lastFeatureStatus[item.feature] = "VERIFIED" }
+                if item.event == "result_failed" || item.event == "failure" || item.event == "error" { lastFeatureStatus[item.feature] = "FAILED" }
             }
         }
         if let data = try? Data(contentsOf: consoleURL),

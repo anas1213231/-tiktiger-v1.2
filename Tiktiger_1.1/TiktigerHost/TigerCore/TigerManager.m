@@ -1,6 +1,7 @@
 #import "TigerManager.h"
 
 static NSString * const kTiktigerFeaturePrefix = @"tiktiger.feature.";
+static NSString * const kTiktigerEnabledKey = @"tiktiger.master.enabled";
 
 @interface TigerManager ()
 @property (nonatomic, assign) NSUInteger counter;
@@ -8,14 +9,31 @@ static NSString * const kTiktigerFeaturePrefix = @"tiktiger.feature.";
 
 @implementation TigerManager
 
+@synthesize enabled = _enabled;
+
 + (TigerManager *)shared {
     static TigerManager *manager;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         manager = [[TigerManager alloc] init];
-        manager.enabled = YES;
+        if (NSUserDefaults.standardUserDefaults.objectForKey(kTiktigerEnabledKey) == nil) {
+            [NSUserDefaults.standardUserDefaults setBool:YES forKey:kTiktigerEnabledKey];
+        }
+        manager.enabled = [NSUserDefaults.standardUserDefaults boolForKey:kTiktigerEnabledKey];
     });
     return manager;
+}
+
+- (BOOL)isEnabled {
+    if (NSUserDefaults.standardUserDefaults.objectForKey(kTiktigerEnabledKey) == nil) {
+        return _enabled;
+    }
+    return [NSUserDefaults.standardUserDefaults boolForKey:kTiktigerEnabledKey];
+}
+
+- (void)setEnabled:(BOOL)enabled {
+    _enabled = enabled;
+    [NSUserDefaults.standardUserDefaults setBool:enabled forKey:kTiktigerEnabledKey];
 }
 
 - (NSString *)version {
