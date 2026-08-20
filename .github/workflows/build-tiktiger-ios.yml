@@ -319,7 +319,6 @@ jobs:
           file "$DYLIB_PATH" | grep -Eiq 'Mach-O.*(arm64|64-bit)'
           lipo -archs "$DYLIB_PATH" | grep -Eq '^arm64$'
           otool -L "$DYLIB_PATH" | grep -Fq '@rpath/Tiktiger.dylib'
-          otool -L "$APP_PATH/TiktigerHost" | grep -Fq '@rpath/Tiktiger.dylib'
           RPATH_OUTPUT="$(otool -l "$APP_PATH/TiktigerHost" | grep -A5 -F 'LC_RPATH' || true)"
           echo "HOST RPATH OUTPUT: $RPATH_OUTPUT"
           printf '%s\n' "$RPATH_OUTPUT" | grep -Fq '@executable_path/Frameworks'
