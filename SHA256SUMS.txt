@@ -1,4 +1,4 @@
-# Tiktiger 1.1 — SHA-256 Checksums
+# Tiktiger 1.1 SHA-256 Checksums
 
 ## Approved dylib
 
@@ -6,18 +6,20 @@
 c74d63937efdb58421382910e0de0c5cd23dd8ee046c986f8f4698e678a31c80  Tiktiger_1.1/Xcode_Dylib_Project/BuildOutput/Tiktiger.dylib
 ```
 
-## GitHub Actions run 32389935401 artifact
+## GitHub Actions run 32392546086 — commit b2cf774af68e0538cc8882c93e96f29b3f76cc7f
 
 ```text
-5c80dce844e788cb949e28d9991df0846ff3496d6e6fe124ccfb60cca19eccb1  unsigned_ipa/TiktigerHost-unsigned-signable.ipa
+78bda773d1354f06fed1a7d11f8bc6c9b09d961773c070417e39e5bb0c4841fa  unsigned_ipa/TiktigerHost_SIGNING_FIXED_unsigned.ipa
+82b77fda73c2ade359fff82b1bbe611e61851417e593f5753856d7dd9edd2d43  build.log
+15937901f4ad4465b753f63e7fa7ca1b6973a9a7b0b5e89d2903827439c6a771  host_build.log
+9c1906ae60eeb3435e6c98d835a0d1cefec158e1df9cc3792761116dc9b3ae7c  simulator_build.log
 b8d484b3cc3ae99382ecff4219dfcf82c8c846e76473de67f6bc6690bb3b0d33  verification.txt
 1e8a4e698b2ed090aaacd293de0f5f20a1147f2fdd1ec030a5d7eb4ce8fa53cf  symbol_status.txt
-6631589631fee40516ff475cc27e721a7321487c34ae4e5d6ac9643045084cfd  host_build.log
-47009a1121abfc07d01c0b3510f6a208761bf1631979b78686f6d861404050be  simulator_build.log
 1ee643957ff8a7edc698750fef462ad801c149cfa2d80f127d3ddb2c139014e8  runtime_smoke_test.txt
-da9c129e7410d90068f1b0077ed1c6c7c81badb7dfe35b13fde0af7b5a3d3a79  runtime_console.log
+43dfc253f51ea3c1e932bd34a730862aca59d348a3605c758ab8861964866023  runtime_console.log
+c74d63937efdb58421382910e0de0c5cd23dd8ee046c986f8f4698e678a31c80  Tiktiger_1.1/Xcode_Dylib_Project/BuildOutput/Tiktiger.dylib
 ```
 
 ## Integrity boundary
 
-The dylib hash is the approved pre-eSign hash. eSign will change the final IPA signature and therefore the final signed IPA hash; it must not replace or rebuild the embedded dylib.
+The dylib hash is the approved pre-eSign hash. eSign will change the final IPA signature and therefore the final signed IPA hash; it must not replace or rebuild the embedded dylib. The unsigned IPA hash above is for the exact artifact produced by the referenced GitHub Actions run.

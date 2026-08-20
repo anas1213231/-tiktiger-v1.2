@@ -2,7 +2,7 @@
 
 ## Scope and evidence
 
-تم تدقيق IPA unsigned الحالية ثم إنشاء `TiktigerHost_SIGNING_FIXED_unsigned.ipa` من نفس Payload بعد نجاح GitHub Actions run `32389935401`. هذا التدقيق يثبت بنية IPA وMach-O وInfo.plist وruntime paths قبل eSign. لا يمكن حسم صحة شهادة المالك أو Provisioning Profile أو سبب crash على iPhone بدون IPA الموقعة فعليًا أو crash/device log منها.
+تم تدقيق IPA unsigned ثم إنتاج `TiktigerHost_SIGNING_FIXED_unsigned.ipa` في GitHub Actions run `32392546086` على commit `b2cf774af68e0538cc8882c93e96f29b3f76cc7f`. هذا التدقيق يثبت بنية IPA وMach-O وInfo.plist وruntime paths قبل eSign. لا يمكن حسم صحة شهادة المالك أو Provisioning Profile أو سبب crash على iPhone بدون IPA الموقعة فعليًا أو crash/device log منها.
 
 ## Requested fields
 
@@ -30,7 +30,7 @@
 | SIGNING STATE OF AUDITED IPA | **UNSIGNED** by design; no `_CodeSignature` or `embedded.mobileprovision` |
 | SIGNED IPA STATE | **NOT AVAILABLE** — owner eSign output is required for signed verification |
 | SIGNING_FIXED IPA | `TiktigerHost_SIGNING_FIXED_unsigned.ipa` |
-| SIGNING_FIXED IPA SHA-256 | `7a3fbd34742ff708c711293c85f60be351183809b95ec0f35ed8c59ee257cdbe` |
+| SIGNING_FIXED IPA SHA-256 | `78bda773d1354f06fed1a7d11f8bc6c9b09d961773c070417e39e5bb0c4841fa` |
 
 ## IPA structure
 
@@ -61,7 +61,7 @@ The Host does not list `Tiktiger.dylib` as a static `LC_LOAD_DYLIB` dependency b
 Payload/TiktigerHost.app/Frameworks/Tiktiger.dylib
 ```
 
-System framework paths such as `/System/Library/Frameworks/...` and `/usr/lib/...` are normal iOS system dependencies. The audit found no `DerivedData`, `/Users/`, or `/Applications/` project path in the embedded app dependency list. The previous TigerCore absolute install-name issue was fixed in the binary verified by run `32389935401`.
+System framework paths such as `/System/Library/Frameworks/...` and `/usr/lib/...` are normal iOS system dependencies. The audit found no `DerivedData`, `/Users/`, or `/Applications/` project path in the embedded app dependency list. The previous TigerCore absolute install-name issue was fixed in the binary verified by runs `32389935401` and `32392546086`.
 
 ## Signing hierarchy
 
@@ -115,6 +115,7 @@ Therefore a true iPhone launch crash before UI is more likely to be caused by eS
 | Simulator signing | **PASS** in CI smoke |
 | Simulator install | **PASS** in CI smoke |
 | Simulator launch | **PASS** in CI smoke after TigerCore rpath fix |
+| GitHub Actions run | **SUCCESS** — `32392546086` on `b2cf774af68e0538cc8882c93e96f29b3f76cc7f` |
 | Owner eSign signing | **PENDING** |
 | Real iPhone installation | **PENDING** |
 | Real iPhone Host UI visible | **NOT VERIFIED** |
