@@ -16,7 +16,7 @@ static NSString * const kTiktigerEnabledKey = @"tiktiger.master.enabled";
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         manager = [[TigerManager alloc] init];
-        if (NSUserDefaults.standardUserDefaults.objectForKey(kTiktigerEnabledKey) == nil) {
+        if ([NSUserDefaults.standardUserDefaults objectForKey:kTiktigerEnabledKey] == nil) {
             [NSUserDefaults.standardUserDefaults setBool:YES forKey:kTiktigerEnabledKey];
         }
         manager.enabled = [NSUserDefaults.standardUserDefaults boolForKey:kTiktigerEnabledKey];
@@ -25,7 +25,7 @@ static NSString * const kTiktigerEnabledKey = @"tiktiger.master.enabled";
 }
 
 - (BOOL)isEnabled {
-    if (NSUserDefaults.standardUserDefaults.objectForKey(kTiktigerEnabledKey) == nil) {
+    if ([NSUserDefaults.standardUserDefaults objectForKey:kTiktigerEnabledKey] == nil) {
         return _enabled;
     }
     return [NSUserDefaults.standardUserDefaults boolForKey:kTiktigerEnabledKey];
