@@ -287,6 +287,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          trap 'status=$?; echo "PACKAGING_FAILED line=${LINENO} status=${status}"; exit "$status"' ERR
           HOST_DIR="$GITHUB_WORKSPACE/Tiktiger_1.1/TiktigerHost"
           HOST_DERIVED="$HOST_DIR/Build/.DerivedData"
           PACKAGE_DIR="$GITHUB_WORKSPACE/unsigned_ipa"
@@ -319,7 +320,10 @@ jobs:
           lipo -archs "$DYLIB_PATH" | grep -Eq '^arm64$'
           otool -L "$DYLIB_PATH" | grep -Fq '@rpath/Tiktiger.dylib'
           otool -L "$APP_PATH/TiktigerHost" | grep -Fq '@rpath/Tiktiger.dylib'
-          otool -l "$APP_PATH/TiktigerHost" | grep -A2 -F 'LC_RPATH' | grep -Fq '@executable_path/Frameworks'
+          RPATH_OUTPUT="$(otool -l "$APP_PATH/TiktigerHost" | grep -A5 -F 'LC_RPATH' || true)"
+          echo "HOST RPATH OUTPUT: $RPATH_OUTPUT"
+          printf '%s\n' "$RPATH_OUTPUT" | grep -Fq '@executable_path/Frameworks'
+          echo 'IPA INPUT AND RPATH CHECKS: OK'
 
           rm -rf "$PACKAGE_DIR"
           mkdir -p "$IPA_ROOT/Payload" "$PACKAGE_DIR"
