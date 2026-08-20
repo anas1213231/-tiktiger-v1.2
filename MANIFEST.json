@@ -10,6 +10,7 @@
   "core_install_name": "@rpath/TigerCore.framework/TigerCore",
   "host_runpath": "@executable_path/Frameworks",
   "distribution": "Unsigned/Signable IPA for owner eSign",
+  "source_commit": "a550e088436431fe9c28da85fd7b406ce9164e56",
   "xcode_workflow_run": "32389935401",
   "xcode_build_commit": "18d30a03f5b3cbe220c6cc8896c30beca8c78ab6",
   "xcode_verified": true,
