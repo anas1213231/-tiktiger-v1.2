@@ -1,0 +1,284 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000000000000000000001 /* Tiktiger.c in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000011 /* Tiktiger.c */; };
+		A10000000000000000000002 /* Tiktiger.h in Headers */ = {isa = PBXBuildFile; fileRef = A10000000000000000000012 /* Tiktiger.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		A10000000000000000000003 /* TiktigerFeatures.c in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000015 /* TiktigerFeatures.c */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A10000000000000000000011 /* Tiktiger.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = Tiktiger.c; sourceTree = "<group>"; };
+		A10000000000000000000012 /* Tiktiger.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Tiktiger.h; sourceTree = "<group>"; };
+		A10000000000000000000013 /* Tiktiger.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = Tiktiger.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10000000000000000000014 /* README_AR.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README_AR.md; sourceTree = "<group>"; };
+		A10000000000000000000015 /* TiktigerFeatures.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = TiktigerFeatures.c; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A10000000000000000000021 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A10000000000000000000060 = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000061 /* TiktigerDylib */,
+				A10000000000000000000014 /* README_AR.md */,
+				A10000000000000000000063 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A10000000000000000000061 /* TiktigerDylib */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000064 /* include */,
+				A10000000000000000000065 /* src */,
+			);
+			path = TiktigerDylib;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000063 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000013 /* Tiktiger.dylib */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000064 /* include */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000012 /* Tiktiger.h */,
+			);
+			path = include;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000065 /* src */ = {
+			isa = PBXGroup;
+			children = (
+									A10000000000000000000011 /* Tiktiger.c */,
+					A10000000000000000000015 /* TiktigerFeatures.c */,
+				);
+				path = src;
+
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		A10000000000000000000023 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000002 /* Tiktiger.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		A10000000000000000000041 /* TiktigerDylib */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A10000000000000000000071 /* Build configuration list for PBXNativeTarget "TiktigerDylib" */;
+			buildPhases = (
+				A10000000000000000000023 /* Headers */,
+				A10000000000000000000024 /* Sources */,
+				A10000000000000000000021 /* Frameworks */,
+				A10000000000000000000026 /* Export dylib */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TiktigerDylib;
+			productName = Tiktiger;
+			productReference = A10000000000000000000013 /* Tiktiger.dylib */;
+			productType = "com.apple.product-type.library.dynamic";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A10000000000000000000050 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					A10000000000000000000041 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = A10000000000000000000070 /* Build configuration list for PBXProject "TiktigerDylib" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A10000000000000000000060;
+			productRefGroup = A10000000000000000000063 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A10000000000000000000041 /* TiktigerDylib */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		A10000000000000000000026 /* Export dylib */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Export dylib";
+			outputPaths = (
+				"$(SRCROOT)/BuildOutput/Tiktiger.dylib",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\nOUT_DIR=\"${SRCROOT}/BuildOutput\"\nmkdir -p \"$OUT_DIR\"\ncp -f \"${TARGET_BUILD_DIR}/${EXECUTABLE_PATH}\" \"$OUT_DIR/Tiktiger.dylib\"\n/usr/bin/file \"$OUT_DIR/Tiktiger.dylib\"\nif command -v otool >/dev/null 2>&1; then\n  /usr/bin/otool -hv \"$OUT_DIR/Tiktiger.dylib\" || true\nfi\nprintf '\\nExported: %s\\n' \"$OUT_DIR/Tiktiger.dylib\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A10000000000000000000024 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+									A10000000000000000000001 /* Tiktiger.c in Sources */,
+					A10000000000000000000003 /* TiktigerFeatures.c in Sources */,
+				);
+				runOnlyForDeploymentPostprocessing = 0;
+
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A10000000000000000000081 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+			};
+			name = Debug;
+		};
+		A10000000000000000000082 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				SDKROOT = iphoneos;
+			};
+			name = Release;
+		};
+		A10000000000000000000083 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CURRENT_PROJECT_VERSION = 11;
+				DEAD_CODE_STRIPPING = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1.1;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				EXECUTABLE_PREFIX = "";
+				EXECUTABLE_SUFFIX = ".dylib";
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/TiktigerDylib/include",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_DYLIB_INSTALL_NAME = "@rpath/Tiktiger.dylib";
+				MACH_O_TYPE = mh_dylib;
+				MARKETING_VERSION = 1.1;
+				PRODUCT_NAME = Tiktiger;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = NO;
+				SUPPORTED_PLATFORMS = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A10000000000000000000084 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CURRENT_PROJECT_VERSION = 11;
+				DEAD_CODE_STRIPPING = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1.1;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				EXECUTABLE_PREFIX = "";
+				EXECUTABLE_SUFFIX = ".dylib";
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/TiktigerDylib/include",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_DYLIB_INSTALL_NAME = "@rpath/Tiktiger.dylib";
+				MACH_O_TYPE = mh_dylib;
+				MARKETING_VERSION = 1.1;
+				PRODUCT_NAME = Tiktiger;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = NO;
+				SUPPORTED_PLATFORMS = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A10000000000000000000070 /* Build configuration list for PBXProject "TiktigerDylib" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A10000000000000000000081 /* Debug */,
+				A10000000000000000000082 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A10000000000000000000071 /* Build configuration list for PBXNativeTarget "TiktigerDylib" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A10000000000000000000083 /* Debug */,
+				A10000000000000000000084 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A10000000000000000000050 /* Project object */;
+}

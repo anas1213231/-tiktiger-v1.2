@@ -1,0 +1,144 @@
+name: Build and Verify Tiktiger 1.1 iOS dylib
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'Tiktiger_1.1/Xcode_Dylib_Project/**'
+      - '.github/workflows/build-tiktiger-ios.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tiktiger-ios-dylib-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-tiktiger-dylib:
+    name: Release iphoneos arm64 dylib
+    runs-on: macos-14
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Inspect Apple toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          sw_vers
+          xcodebuild -version
+          xcode-select -p
+          xcrun --sdk iphoneos --show-sdk-version
+
+      - name: Build Tiktiger.dylib with Xcode
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROJECT_DIR="$GITHUB_WORKSPACE/Tiktiger_1.1/Xcode_Dylib_Project"
+          PROJECT="$PROJECT_DIR/TiktigerDylib.xcodeproj"
+          DERIVED_DATA="$PROJECT_DIR/Build/.DerivedData"
+          OUTPUT_DIR="$PROJECT_DIR/BuildOutput"
+
+          rm -rf "$DERIVED_DATA"
+          mkdir -p "$OUTPUT_DIR"
+
+          xcodebuild \
+            -project "$PROJECT" \
+            -scheme TiktigerDylib \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath "$DERIVED_DATA" \
+            ARCHS=arm64 \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            clean build 2>&1 | tee "$GITHUB_WORKSPACE/build.log"
+
+          grep -q 'BUILD SUCCEEDED' "$GITHUB_WORKSPACE/build.log"
+
+          DYLIB_CANDIDATE="$(find "$DERIVED_DATA" -type f -name 'Tiktiger.dylib' -print -quit)"
+          if [ -z "$DYLIB_CANDIDATE" ]; then
+            DYLIB_CANDIDATE="$OUTPUT_DIR/Tiktiger.dylib"
+          fi
+          test -s "$DYLIB_CANDIDATE"
+          cp -f "$DYLIB_CANDIDATE" "$OUTPUT_DIR/Tiktiger.dylib"
+          test -s "$OUTPUT_DIR/Tiktiger.dylib"
+
+      - name: Verify Mach-O, architecture, install name, symbols, and SHA-256
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROJECT_DIR="$GITHUB_WORKSPACE/Tiktiger_1.1/Xcode_Dylib_Project"
+          OUTPUT="$PROJECT_DIR/BuildOutput/Tiktiger.dylib"
+          VERIFICATION="$GITHUB_WORKSPACE/verification.txt"
+
+          test -s "$OUTPUT"
+
+          MACOS_VERSION="$(sw_vers -productVersion)"
+          XCODE_VERSION="$(xcodebuild -version | tr '\n' ' ')"
+          IOS_SDK_VERSION="$(xcrun --sdk iphoneos --show-sdk-version)"
+          FILE_RESULT="$(file "$OUTPUT")"
+          LIPO_RESULT="$(lipo -info "$OUTPUT")"
+          ARCH_LIST="$(lipo -archs "$OUTPUT")"
+          OTOOL_HV_RESULT="$(otool -hv "$OUTPUT")"
+          OTOOL_L_RESULT="$(otool -L "$OUTPUT")"
+          INSTALL_NAME="$(otool -D "$OUTPUT")"
+          SYMBOL_RESULT="$(nm -gU "$OUTPUT")"
+          SHA256_RESULT="$(shasum -a 256 "$OUTPUT")"
+
+          printf '%s\n' "$FILE_RESULT"
+          printf '%s\n' "$LIPO_RESULT"
+          printf '%s\n' "$OTOOL_HV_RESULT"
+          printf '%s\n' "$OTOOL_L_RESULT"
+          printf '%s\n' "$SYMBOL_RESULT"
+          printf '%s\n' "$SHA256_RESULT"
+
+          printf '%s\n' "$FILE_RESULT" | grep -Eiq 'Mach-O'
+          printf '%s\n' "$LIPO_RESULT" | grep -Eiq 'arm64'
+          test "$ARCH_LIST" = 'arm64'
+          printf '%s\n' "$OTOOL_HV_RESULT" | grep -Eiq 'MH_DYLIB'
+          printf '%s\n' "$INSTALL_NAME" | grep -Fq '@rpath/Tiktiger.dylib'
+          for symbol in tt_product_name tt_version tt_set_feature_enabled tt_validate_https_url tt_diagnostics_json; do
+            printf '%s\n' "$SYMBOL_RESULT" | grep -Eiq "(^|[[:space:]_])${symbol}([[:space:]]|$)"
+          done
+
+          {
+            echo 'BUILD STATUS: BUILD SUCCEEDED and binary verification passed'
+            echo "macOS Version: $MACOS_VERSION"
+            echo "Xcode Version: $XCODE_VERSION"
+            echo "iOS SDK Version: $IOS_SDK_VERSION"
+            echo 'SDK: iphoneos'
+            echo 'Architecture: arm64'
+            echo "Architecture slices: $ARCH_LIST"
+            echo "Product Path: $OUTPUT"
+            echo 'file result:'
+            printf '%s\n' "$FILE_RESULT"
+            echo 'lipo result:'
+            printf '%s\n' "$LIPO_RESULT"
+            echo 'otool -hv:'
+            printf '%s\n' "$OTOOL_HV_RESULT"
+            echo 'otool -L:'
+            printf '%s\n' "$OTOOL_L_RESULT"
+            echo 'Install name:'
+            printf '%s\n' "$INSTALL_NAME"
+            echo 'exported symbols:'
+            printf '%s\n' "$SYMBOL_RESULT"
+            echo 'SHA-256:'
+            printf '%s\n' "$SHA256_RESULT"
+          } > "$VERIFICATION"
+
+          test -s "$VERIFICATION"
+
+      - name: Upload verified Tiktiger artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tiktiger-1.1-ios-arm64-${{ github.sha }}
+          if-no-files-found: warn
+          path: |
+            Tiktiger_1.1/Xcode_Dylib_Project/BuildOutput/Tiktiger.dylib
+            build.log
+            verification.txt
