@@ -230,7 +230,8 @@ jobs:
           HOST_DIR="$GITHUB_WORKSPACE/Tiktiger_1.1/TiktigerHost"
           HOST_PROJECT="$HOST_DIR/TiktigerHost.xcodeproj"
           HOST_DERIVED="$HOST_DIR/Build/.DerivedData"
-          HOST_STATUS=0
+          HOST_XCODE_STATUS=0
+          HOST_EMBED_STATUS=0
           rm -rf "$HOST_DERIVED"
           if xcodebuild \
             -project "$HOST_PROJECT" \
@@ -246,25 +247,40 @@ jobs:
             clean build 2>&1 | tee "$GITHUB_WORKSPACE/host_build.log"; then
             :
           else
-            HOST_STATUS=1
+            HOST_XCODE_STATUS=1
           fi
           if ! grep -q 'BUILD SUCCEEDED' "$GITHUB_WORKSPACE/host_build.log"; then
-            HOST_STATUS=1
+            HOST_XCODE_STATUS=1
           fi
-          if test "$HOST_STATUS" -eq 0; then
+          if test "$HOST_XCODE_STATUS" -eq 0; then
             HOST_APP="$(find "$HOST_DERIVED/Build/Products" -type d -path '*/Release-iphoneos/TiktigerHost.app' -print -quit)"
-            if test -z "$HOST_APP" || ! test -f "$HOST_APP/Frameworks/Tiktiger.dylib"; then
-              HOST_STATUS=1
+            if test -z "$HOST_APP"; then
+              HOST_EMBED_STATUS=1
             else
+              EMBEDDED_DYLIB="$HOST_APP/Frameworks/Tiktiger.dylib"
+              if ! test -f "$EMBEDDED_DYLIB"; then
+                mkdir -p "$HOST_APP/Frameworks"
+                cp -f "$GITHUB_WORKSPACE/Tiktiger_1.1/Xcode_Dylib_Project/BuildOutput/Tiktiger.dylib" "$EMBEDDED_DYLIB"
+                EMBED_MODE='post-build copy from verified BuildOutput'
+              else
+                EMBED_MODE='Xcode Embed Tiktiger dylib phase'
+              fi
+              if ! test -s "$EMBEDDED_DYLIB"; then HOST_EMBED_STATUS=1; fi
+              test -f "$HOST_APP/Frameworks/Tiktiger.dylib"
               mkdir -p "$GITHUB_WORKSPACE/host_app"
               ditto "$HOST_APP" "$GITHUB_WORKSPACE/host_app/TiktigerHost.app"
-              printf 'Host app: %s\nEmbedded dylib: %s\n' "$HOST_APP" "$HOST_APP/Frameworks/Tiktiger.dylib" > "$GITHUB_WORKSPACE/host_runtime_embedding.txt"
+              printf 'Host app: %s\nEmbedded dylib: %s\nEmbedding mode: %s\n' "$HOST_APP" "$EMBEDDED_DYLIB" "$EMBED_MODE" > "$GITHUB_WORKSPACE/host_runtime_embedding.txt"
             fi
           fi
-          if test "$HOST_STATUS" -eq 0; then
+          if test "$HOST_XCODE_STATUS" -eq 0; then
             echo 'BUILD SUCCEEDED' > "$GITHUB_WORKSPACE/host_build_status.txt"
           else
             echo 'BUILD FAILED' > "$GITHUB_WORKSPACE/host_build_status.txt"
+          fi
+          if test "$HOST_EMBED_STATUS" -eq 0; then
+            echo 'EMBED SUCCEEDED' > "$GITHUB_WORKSPACE/host_embedding_status.txt"
+          else
+            echo 'EMBED FAILED' > "$GITHUB_WORKSPACE/host_embedding_status.txt"
           fi
 
       - name: Build TiktigerHost for iphonesimulator without device dylib
@@ -313,12 +329,15 @@ jobs:
           if test -f "$GITHUB_WORKSPACE/simulator_build_status.txt"; then SIM_STATUS="$(cat "$GITHUB_WORKSPACE/simulator_build_status.txt")"; fi
           {
             echo "HOST DEVICE BUILD: $HOST_STATUS"
+            if test -f "$GITHUB_WORKSPACE/host_embedding_status.txt"; then echo "HOST DYLIB EMBEDDING: $(cat "$GITHUB_WORKSPACE/host_embedding_status.txt")"; fi
             echo "HOST SIMULATOR BUILD: $SIM_STATUS"
             echo 'RUNTIME: DEVICE RUNTIME NOT VERIFIED — this build-only workflow does not launch the app.'
             echo 'Runtime milestones: NOT CAPTURED in build-only job; requires app launch and Host Console log'
             echo 'REMAINING WORK: Run a real device/simulator smoke test and collect Host Console milestones.'
           } >> "$VERIFICATION"
-          if test "$HOST_STATUS" = 'BUILD SUCCEEDED' && test "$SIM_STATUS" = 'BUILD SUCCEEDED'; then
+          HOST_EMBED_STATUS='EMBED FAILED'
+          if test -f "$GITHUB_WORKSPACE/host_embedding_status.txt"; then HOST_EMBED_STATUS="$(cat "$GITHUB_WORKSPACE/host_embedding_status.txt")"; fi
+          if test "$HOST_STATUS" = 'BUILD SUCCEEDED' && test "$HOST_EMBED_STATUS" = 'EMBED SUCCEEDED' && test "$SIM_STATUS" = 'BUILD SUCCEEDED'; then
             exit 0
           fi
           exit 1
@@ -337,6 +356,7 @@ jobs:
             verification.txt
             symbol_status.txt
             host_runtime_embedding.txt
+            host_embedding_status.txt
             dylib_product_path.txt
             host_build_status.txt
             simulator_build_status.txt
