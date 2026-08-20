@@ -360,7 +360,17 @@ jobs:
               SMOKE_STATUS=1
               echo 'APP INSTALL: FAILED' >> "$SMOKE_REPORT"
             fi
-            if xcrun simctl launch "$DEVICE_ID" com.ucorc.Tiktiger >> "$SMOKE_LOG" 2>&1; then
+            sleep 8
+            LAUNCH_STATUS=1
+            for attempt in 1 2 3; do
+              echo "UI LAUNCH ATTEMPT: $attempt" >> "$SMOKE_LOG"
+              if xcrun simctl launch "$DEVICE_ID" com.ucorc.Tiktiger >> "$SMOKE_LOG" 2>&1; then
+                LAUNCH_STATUS=0
+                break
+              fi
+              sleep 8
+            done
+            if test "$LAUNCH_STATUS" -eq 0; then
               echo 'UI LAUNCH: SUCCEEDED' >> "$SMOKE_REPORT"
             else
               SMOKE_STATUS=1
