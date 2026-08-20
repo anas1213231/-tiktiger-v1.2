@@ -424,8 +424,17 @@ jobs:
             SMOKE_STATUS=1
             echo 'SIMULATOR DEVICE: NOT FOUND' >> "$SMOKE_REPORT"
           else
-            xcrun simctl boot "$DEVICE_ID" >/dev/null 2>&1 || true
-            if xcrun simctl bootstatus "$DEVICE_ID" -b >> "$SMOKE_LOG" 2>&1; then
+            xcrun simctl boot "$DEVICE_ID" >> "$SMOKE_LOG" 2>&1 || true
+            BOOTED_STATUS=1
+            for boot_attempt in $(seq 1 60); do
+              echo "SIMULATOR BOOT POLL: $boot_attempt" >> "$SMOKE_LOG"
+              if xcrun simctl list devices available 2>>"$SMOKE_LOG" | grep -F "$DEVICE_ID" | grep -Fq '(Booted)'; then
+                BOOTED_STATUS=0
+                break
+              fi
+              sleep 2
+            done
+            if test "$BOOTED_STATUS" -eq 0; then
               echo "SIMULATOR DEVICE: $DEVICE_ID BOOTED" >> "$SMOKE_REPORT"
             else
               SMOKE_STATUS=1
