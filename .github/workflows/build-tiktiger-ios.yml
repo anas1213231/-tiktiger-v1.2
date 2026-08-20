@@ -340,7 +340,9 @@ jobs:
           : > "$SMOKE_REPORT"
           if test "$(cat "$GITHUB_WORKSPACE/host_build_status.txt" 2>/dev/null || echo FAILED)" != 'BUILD SUCCEEDED'; then SMOKE_STATUS=1; fi
           if test "$(cat "$GITHUB_WORKSPACE/simulator_build_status.txt" 2>/dev/null || echo FAILED)" != 'BUILD SUCCEEDED'; then SMOKE_STATUS=1; fi
-          DEVICE_ID="$(xcrun simctl list devices available | sed -nE 's/.*\\(([0-9A-F-]{36})\\).*/\\1/p' | sed -n '1p')"
+          DEVICE_LIST="$(xcrun simctl list devices available 2>&1 || true)"
+          printf '%s\n' "$DEVICE_LIST" >> "$SMOKE_LOG"
+          DEVICE_ID="$(printf '%s\n' "$DEVICE_LIST" | awk -F '[()]' 'tolower($0) ~ /iphone/ && length($2) == 36 {print $2; exit}')"
           if test -z "$DEVICE_ID"; then
             SMOKE_STATUS=1
             echo 'SIMULATOR DEVICE: NOT FOUND' >> "$SMOKE_REPORT"
