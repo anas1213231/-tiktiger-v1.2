@@ -919,7 +919,7 @@ private struct DiagnosticsView: View {
                                     .font(.caption.weight(.bold))
                                     .foregroundColor(milestone.state == "VERIFIED" ? .green : (milestone.state == "FAILED" ? .red : .orange))
                             }
-                            Text("\(milestone.timestamp ?? \"NOT REACHED\") · \(milestone.detail ?? \"NOT REACHED\")")
+                            Text("\(milestone.timestamp ?? "NOT REACHED") · \(milestone.detail ?? "NOT REACHED")")
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                         }
