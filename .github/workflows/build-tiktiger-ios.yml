@@ -292,7 +292,7 @@ jobs:
           HOST_DERIVED="$HOST_DIR/Build/.DerivedData"
           PACKAGE_DIR="$GITHUB_WORKSPACE/unsigned_ipa"
           IPA_ROOT="$PACKAGE_DIR/ipa_root"
-          IPA_PATH="$PACKAGE_DIR/TiktigerHost-unsigned-signable.ipa"
+          IPA_PATH="$PACKAGE_DIR/TiktigerHost_SIGNING_FIXED_unsigned.ipa"
           APP_PATH="$(find "$HOST_DERIVED/Build/Products" -type d -path '*/Release-iphoneos/TiktigerHost.app' -print -quit)"
           DYLIB_PATH="$APP_PATH/Frameworks/Tiktiger.dylib"
           CORE_PLIST="$APP_PATH/Frameworks/TigerCore.framework/Info.plist"
@@ -357,7 +357,7 @@ jobs:
               'REAL DEVICE RUNTIME: PENDING OWNER INSTALLATION'
           } > "$PACKAGE_DIR/IPA_MANIFEST.txt"
           test -s "$PACKAGE_DIR/IPA_MANIFEST.txt"
-          echo "UNSIGNED IPA READY: $IPA_PATH"
+          echo "SIGNING-FIXED UNSIGNED IPA READY: $IPA_PATH"
           ls -lh "$IPA_PATH" "$PACKAGE_DIR/IPA_MANIFEST.txt"
 
       - name: Build TiktigerHost for iphonesimulator without device dylib
@@ -571,5 +571,5 @@ jobs:
             simulator_crash_reports
             runtime_smoke_status.txt
             simulator_signing_status.txt
-            unsigned_ipa/TiktigerHost-unsigned-signable.ipa
+            unsigned_ipa/TiktigerHost_SIGNING_FIXED_unsigned.ipa
             unsigned_ipa/IPA_MANIFEST.txt

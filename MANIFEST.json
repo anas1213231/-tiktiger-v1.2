@@ -39,7 +39,7 @@
   },
   "required_artifacts": [
     "Tiktiger.dylib",
-    "TiktigerHost-unsigned-signable.ipa",
+    "TiktigerHost_SIGNING_FIXED_unsigned.ipa",
     "build.log",
     "host_build.log",
     "simulator_build.log",

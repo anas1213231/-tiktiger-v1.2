@@ -2,7 +2,7 @@
 
 ## Package and identity
 
-Use the artifact named `TiktigerHost-unsigned-signable.ipa`. It is an unsigned/signable IPA produced from the verified `iphoneos` Host build. The application identity must remain:
+Use the artifact named `TiktigerHost_SIGNING_FIXED_unsigned.ipa`. It is an unsigned/signable IPA produced from the verified `iphoneos` Host build. The application identity must remain:
 
 | Item | Required value |
 |---|---|
