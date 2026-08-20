@@ -1,0 +1,19 @@
+# Xcode build products
+**/Build/
+**/DerivedData/
+**/.DerivedData/
+**/BuildOutput/*
+!**/BuildOutput/.gitkeep
+**/BuildLogs/
+
+# Apple generated files
+*.xcuserstate
+xcuserdata/
+*.dSYM/
+*.ipa
+*.app
+*.dylib
+!Tiktiger_1.1/Xcode_Dylib_Project/BuildOutput/.gitkeep
+
+# Local machine files
+.DS_Store

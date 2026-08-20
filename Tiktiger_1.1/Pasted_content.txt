@@ -1,0 +1,363 @@
+Tiktiger 1.1 — Final Manus Engineering Task
+
+أنت الآن المسؤول الهندسي النهائي عن مشروع Tiktiger 1.1.
+
+أرفقت لك أرشيف المشروع كاملًا. لا تعتمد على الوصف فقط، بل افتح الأرشيف وافحص جميع الملفات والمشروع فعليًا قبل إجراء أي تعديل.
+
+البداية
+
+ابدأ بقراءة الملفات التالية بالترتيب:
+
+1. START_HERE.md
+2. Docs/DEVELOPER_HANDOFF_AR.md
+3. AI/TIKTIGER_AI_CODING_AGENT_PROMPT.md
+4. Docs/ARCHITECTURE.md
+5. Docs/BUILD_AND_VERIFY.md
+6. Docs/TEST_PLAN.md
+7. Integration/INTEGRATION_CONTRACT.md
+
+ثم افحص كامل مشروع Xcode الموجود داخل:
+
+Xcode_Dylib_Project/
+
+⸻
+
+الهدف النهائي
+
+أريد مشروع Tiktiger حقيقي وقابل للبناء، وليس Mock أو Prototype.
+
+المطلوب النهائي الأساسي هو إنشاء:
+
+BuildOutput/Tiktiger.dylib
+
+بحيث يكون:
+
+* iOS
+* iphoneos
+* arm64
+* Mach-O Dynamic Library
+* mh_dylib
+* Release Build
+* بدون Compile Errors
+* بدون Link Errors
+
+لا تقم بإنشاء ملف فارغ أو إعادة تسمية ملف آخر إلى .dylib.
+
+⸻
+
+المرحلة الأولى: فحص المشروع
+
+افحص:
+
+* جميع Targets
+* Build Settings
+* Build Phases
+* Schemes
+* Headers
+* Public symbols
+* Source files
+* SDK
+* Architecture
+* Deployment Target
+* Product Name
+* Install Name
+* Runpath
+* Warnings
+* Dead files
+* Duplicate files
+* Broken references
+
+أصلح أي مشكلة حقيقية تجدها.
+
+لا تغير المشروع إلى macOS.
+
+يجب أن يبقى:
+
+SDKROOT = iphoneos
+
+والـArchitecture:
+
+arm64
+
+⸻
+
+المرحلة الثانية: Build حقيقي
+
+إذا كانت بيئتك تحتوي على macOS وXcode، نفذ Build فعلي.
+
+اعرض أولًا:
+
+xcodebuild -version
+xcrun --sdk iphoneos --show-sdk-version
+
+ثم شغّل:
+
+cd Xcode_Dylib_Project
+./BUILD_TIKTIGER.command
+
+إذا فشل السكربت، افحص الخطأ وأصلحه ثم أعد البناء.
+
+يمكنك كذلك استخدام xcodebuild مباشرة عند الحاجة.
+
+لا تعتبر المهمة ناجحة حتى يظهر:
+
+BUILD SUCCEEDED
+
+⸻
+
+المرحلة الثالثة: تحقق من الـ dylib
+
+بعد البناء يجب أن يوجد:
+
+Xcode_Dylib_Project/BuildOutput/Tiktiger.dylib
+
+نفذ عليه:
+
+file BuildOutput/Tiktiger.dylib
+lipo -info BuildOutput/Tiktiger.dylib
+otool -hv BuildOutput/Tiktiger.dylib
+otool -L BuildOutput/Tiktiger.dylib
+shasum -a 256 BuildOutput/Tiktiger.dylib
+
+وتأكد من أنه:
+
+* Mach-O حقيقي
+* arm64
+* Dynamic Library
+* مبني لـ iOS
+* وليس macOS binary
+
+⸻
+
+المرحلة الرابعة: تطوير الكود
+
+الكود الحالي يعتبر أساسًا هندسيًا.
+
+نظّم المشروع بحيث يسهل تطوير Tiktiger لاحقًا إلى:
+
+Tiktiger
+├── Core
+├── Services
+├── Models
+├── Networking
+├── DownloadManager
+├── MediaProcessor
+├── Storage
+├── Authentication
+├── Translation
+├── Appearance
+├── Diagnostics
+├── Integration
+└── Public API
+
+لا تضع جميع الوظائف في ملف واحد.
+
+افصل منطق الخدمات عن UI وعن Integration.
+
+⸻
+
+مميزات Tiktiger 1.1
+
+راجع وجود وتنظيم ودقة تنفيذ المميزات التالية في التطبيق المضيف إن كانت مصادره موجودة في الحزمة:
+
+* واجهة Tiktiger
+* الهوية والشعار
+* AppIcon
+* Appearance
+* Translation
+* Diagnostics
+* Download Center
+* سجل التنزيلات
+* إدارة الأخطاء
+* مشاركة الملفات
+* حفظ الوسائط إلى Photos
+* استخراج الصوت إلى M4A
+* Authentication عبر Face ID / LocalAuthentication
+* قفل Chats
+* قفل Favorites
+* قسم المطور @ucorc
+* رابط Telegram
+
+أي ميزة غير مكتملة فعليًا لا تكتب عنها أنها مكتملة.
+
+ضع حالتها كواحدة من:
+
+* VERIFIED
+* IMPLEMENTED BUT NOT TESTED
+* PARTIAL
+* NOT IMPLEMENTED
+* BLOCKED
+
+⸻
+
+التنزيل
+
+أي Download/Media Provider يجب أن يكون API أو Provider مصرحًا باستخدامه.
+
+لا تضع fake URL resolver.
+
+لا تضع نجاحًا وهميًا.
+
+عند عدم وجود Provider فعلي، افصل Interface/Protocol الخاص به واكتب بوضوح:
+
+PROVIDER REQUIRED
+
+حتى يمكن ربط Provider حقيقي لاحقًا.
+
+⸻
+
+الجودة
+
+راجع المشروع بحثًا عن:
+
+* Force unwraps غير الآمنة
+* Race conditions
+* Main-thread violations
+* مشاكل Memory
+* Retain cycles
+* أخطاء async/await
+* عدم معالجة cancellation
+* أخطاء file paths
+* مشاكل filenames
+* مشاكل permission denial
+* Missing usage descriptions
+* Secrets داخل Source
+* Hardcoded credentials
+* Warnings
+* Deprecated APIs
+
+وأصلح الممكن منها.
+
+⸻
+
+الاختبارات المطلوبة
+
+اختبر قدر الإمكان:
+
+Build
+
+* Debug
+* Release
+* Clean Build
+
+dylib
+
+* Mach-O
+* arm64
+* symbols
+* dependencies
+
+Download
+
+* رابط صحيح
+* رابط غير صالح
+* Network failure
+* Cancel
+* Retry
+
+Photos
+
+* Allow
+* Deny
+
+Authentication
+
+* Face ID success
+* failure
+* cancel
+* unavailable
+
+Audio
+
+* conversion success
+* invalid media
+* cancellation
+* sharing
+
+UI
+
+* Dark Mode
+* Light Mode
+* Arabic
+* English
+
+⸻
+
+قواعد مهمة جدًا
+
+لا تقل:
+
+“المشروع مكتمل 100%”
+
+إلا إذا تم Build واختباره فعلًا.
+
+ميّز بوضوح بين:
+
+1. Static Validation
+2. Xcode Build
+3. Integration Build
+4. Simulator Test
+5. Real Device Test
+
+إذا بيئتك لا تحتوي macOS/Xcode/iPhoneOS SDK فاكتب:
+
+XCODE BUILD NOT VERIFIED
+
+ولا تدعي نجاح Build.
+
+لا تستخدم نتيجة فحص Static كدليل على أن dylib تم بناؤها.
+
+⸻
+
+الأمان
+
+لا تضف:
+
+* تجاوز Code Signing
+* تجاوز حماية iOS
+* Unauthorized third-party app injection
+* سرقة Tokens/Credentials
+* Hidden remote control
+* Malicious hooks
+
+أي Integration يجب أن يكون مع تطبيق يملكه صاحب المشروع أو بيئة اختبار مصرح بها.
+
+⸻
+
+التسليم النهائي
+
+في النهاية أريد مجلد/ZIP نهائي يحتوي على:
+
+* Source النهائي
+* مشروع Xcode النهائي
+* Tiktiger.dylib إذا تم Build حقيقي
+* build.log
+* verification.txt
+* SHA-256
+* قائمة الاختبارات
+* قائمة Warnings
+* قائمة TODO المتبقية
+
+ويجب أن يحتوي verification.txt على:
+
+BUILD STATUS:
+XCODE VERSION:
+IOS SDK VERSION:
+CONFIGURATION:
+SDK:
+ARCHITECTURE:
+OUTPUT:
+FILE RESULT:
+LIPO RESULT:
+OTOOL HEADER RESULT:
+OTOOL DEPENDENCIES:
+SHA256:
+WARNINGS:
+TESTS PASSED:
+TESTS FAILED:
+REAL DEVICE TEST:
+REMAINING WORK:
+
+إذا لم تستطع بناء dylib بسبب عدم وجود macOS/Xcode، أكمل مراجعة وإصلاح المصدر قدر الإمكان ثم أخبرني بوضوح أن مرحلة Build تحتاج Mac.
+
+الأولوية هي الدقة والنتيجة القابلة للتحقق، وليس مجرد إنهاء المهمة شكليًا.

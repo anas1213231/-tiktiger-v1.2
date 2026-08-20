@@ -1,0 +1,453 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 60;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		100000000000000000000001 /* TigerManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000011 /* TigerManager.m */; };
+		100000000000000000000002 /* TigerCore.h in Headers */ = {isa = PBXBuildFile; fileRef = 100000000000000000000012 /* TigerCore.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		100000000000000000000003 /* TigerManager.h in Headers */ = {isa = PBXBuildFile; fileRef = 100000000000000000000013 /* TigerManager.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		100000000000000000000004 /* TigerHostApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000014 /* TigerHostApp.swift */; };
+		100000000000000000000005 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000015 /* ContentView.swift */; };
+		100000000000000000000006 /* TigerCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 100000000000000000000016 /* TigerCore.framework */; };
+		100000000000000000000007 /* TigerCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 100000000000000000000016 /* TigerCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		100000000000000000000008 /* tiktiger_logo.png in Resources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000090 /* tiktiger_logo.png */; };
+		100000000000000000000009 /* download_arrow.png in Resources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000091 /* download_arrow.png */; };
+					100000000000000000000010 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000092 /* Assets.xcassets */; };
+			100000000000000000000094 /* TiktigerMediaDownloadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000093 /* TiktigerMediaDownloadService.swift */; };
+
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		100000000000000000000021 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 100000000000000000000050 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 100000000000000000000041;
+			remoteInfo = TigerCore;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		100000000000000000000031 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				100000000000000000000007 /* TigerCore.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		100000000000000000000011 /* TigerManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TigerManager.m; sourceTree = "<group>"; };
+		100000000000000000000012 /* TigerCore.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TigerCore.h; sourceTree = "<group>"; };
+		100000000000000000000013 /* TigerManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TigerManager.h; sourceTree = "<group>"; };
+		100000000000000000000014 /* TigerHostApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TigerHostApp.swift; sourceTree = "<group>"; };
+		100000000000000000000015 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		100000000000000000000016 /* TigerCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = TigerCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		100000000000000000000017 /* TigerHost.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TigerHost.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		100000000000000000000018 /* TigerHost.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TigerHost.entitlements; sourceTree = "<group>"; };
+		100000000000000000000019 /* README_AR.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README_AR.md; sourceTree = "<group>"; };
+		100000000000000000000090 /* tiktiger_logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = tiktiger_logo.png; sourceTree = "<group>"; };
+		100000000000000000000091 /* download_arrow.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = download_arrow.png; sourceTree = "<group>"; };
+					100000000000000000000092 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+			100000000000000000000093 /* TiktigerMediaDownloadService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TiktigerMediaDownloadService.swift; sourceTree = "<group>"; };
+
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		100000000000000000000032 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		100000000000000000000033 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				100000000000000000000006 /* TigerCore.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		100000000000000000000060 = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000061 /* TigerCore */,
+				100000000000000000000062 /* TigerHost */,
+				100000000000000000000019 /* README_AR.md */,
+				100000000000000000000063 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		100000000000000000000061 /* TigerCore */ = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000012 /* TigerCore.h */,
+				100000000000000000000013 /* TigerManager.h */,
+				100000000000000000000011 /* TigerManager.m */,
+			);
+			path = TigerCore;
+			sourceTree = "<group>";
+		};
+		100000000000000000000062 /* TigerHost */ = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000014 /* TigerHostApp.swift */,
+				100000000000000000000015 /* ContentView.swift */,
+									100000000000000000000018 /* TigerHost.entitlements */,
+					100000000000000000000064 /* Resources */,
+					100000000000000000000065 /* Services */,
+					100000000000000000000092 /* Assets.xcassets */,
+				);
+				path = TigerHost;
+
+			sourceTree = "<group>";
+		};
+		100000000000000000000063 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				100000000000000000000016 /* TigerCore.framework */,
+				100000000000000000000017 /* TigerHost.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+				100000000000000000000064 /* Resources */ = {
+				isa = PBXGroup;
+				children = (
+					100000000000000000000090 /* tiktiger_logo.png */,
+					100000000000000000000091 /* download_arrow.png */,
+				);
+				path = Resources;
+				sourceTree = "<group>";
+			};
+			100000000000000000000065 /* Services */ = {
+				isa = PBXGroup;
+				children = (
+					100000000000000000000093 /* TiktigerMediaDownloadService.swift */,
+				);
+				path = Services;
+				sourceTree = "<group>";
+			};
+
+	/* End PBXGroup section */
+
+	/* Begin PBXHeadersBuildPhase section */
+
+		100000000000000000000034 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				100000000000000000000002 /* TigerCore.h in Headers */,
+				100000000000000000000003 /* TigerManager.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		100000000000000000000041 /* TigerCore */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 100000000000000000000071 /* Build configuration list for PBXNativeTarget "TigerCore" */;
+			buildPhases = (
+				100000000000000000000034 /* Headers */,
+				100000000000000000000035 /* Sources */,
+				100000000000000000000032 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TigerCore;
+			productName = TigerCore;
+			productReference = 100000000000000000000016 /* TigerCore.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		100000000000000000000042 /* TigerHost */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 100000000000000000000072 /* Build configuration list for PBXNativeTarget "TigerHost" */;
+							buildPhases = (
+					100000000000000000000036 /* Sources */,
+					100000000000000000000033 /* Frameworks */,
+					100000000000000000000031 /* Embed Frameworks */,
+					100000000000000000000037 /* Resources */,
+				);
+
+			buildRules = (
+			);
+			dependencies = (
+				100000000000000000000022 /* PBXTargetDependency */,
+			);
+			name = TigerHost;
+			productName = TigerHost;
+			productReference = 100000000000000000000017 /* TigerHost.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		100000000000000000000050 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					100000000000000000000041 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					100000000000000000000042 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = 100000000000000000000070 /* Build configuration list for PBXProject "TigerIOSStarter" */;
+			compatibilityVersion = "Xcode 15.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 100000000000000000000060;
+			productRefGroup = 100000000000000000000063 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				100000000000000000000041 /* TigerCore */,
+				100000000000000000000042 /* TigerHost */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		100000000000000000000035 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				100000000000000000000001 /* TigerManager.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		100000000000000000000036 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+									100000000000000000000004 /* TigerHostApp.swift in Sources */,
+					100000000000000000000005 /* ContentView.swift in Sources */,
+					100000000000000000000094 /* TiktigerMediaDownloadService.swift in Sources */,
+
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+	/* End PBXSourcesBuildPhase section */
+
+	/* Begin PBXResourcesBuildPhase section */
+		100000000000000000000037 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				100000000000000000000008 /* tiktiger_logo.png in Resources */,
+				100000000000000000000009 /* download_arrow.png in Resources */,
+				100000000000000000000010 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+	/* End PBXResourcesBuildPhase section */
+
+	/* Begin PBXTargetDependency section */
+
+		100000000000000000000022 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 100000000000000000000041 /* TigerCore */;
+			targetProxy = 100000000000000000000021 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		100000000000000000000081 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+			};
+			name = Debug;
+		};
+		100000000000000000000082 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				SDKROOT = iphoneos;
+			};
+			name = Release;
+		};
+		100000000000000000000083 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUILD_LIBRARY_FOR_DISTRIBUTION = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MACH_O_TYPE = mh_dylib;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ucorc.TiktigerCore;
+				PRODUCT_MODULE_NAME = TigerCore;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		100000000000000000000084 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MACH_O_TYPE = mh_dylib;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ucorc.TiktigerCore;
+				PRODUCT_MODULE_NAME = TigerCore;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		100000000000000000000085 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = TiktigerIcon;
+				CODE_SIGN_ENTITLEMENTS = TigerHost/TigerHost.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 11;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Tiktiger;
+					INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Tiktiger يحتاج صلاحية لحفظ الوسائط في مكتبة الصور.";
+					INFOPLIST_KEY_NSFaceIDUsageDescription = "Tiktiger يستخدم المصادقة لحماية المحادثات والمفضلة.";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ucorc.Tiktiger;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		100000000000000000000086 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = TiktigerIcon;
+				CODE_SIGN_ENTITLEMENTS = TigerHost/TigerHost.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 11;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Tiktiger;
+					INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Tiktiger يحتاج صلاحية لحفظ الوسائط في مكتبة الصور.";
+					INFOPLIST_KEY_NSFaceIDUsageDescription = "Tiktiger يستخدم المصادقة لحماية المحادثات والمفضلة.";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ucorc.Tiktiger;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		100000000000000000000070 /* Build configuration list for PBXProject "TigerIOSStarter" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				100000000000000000000081 /* Debug */,
+				100000000000000000000082 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		100000000000000000000071 /* Build configuration list for PBXNativeTarget "TigerCore" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				100000000000000000000083 /* Debug */,
+				100000000000000000000084 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		100000000000000000000072 /* Build configuration list for PBXNativeTarget "TigerHost" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				100000000000000000000085 /* Debug */,
+				100000000000000000000086 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 100000000000000000000050 /* Project object */;
+}

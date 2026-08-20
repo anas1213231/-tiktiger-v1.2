@@ -1,31 +1,21 @@
-# Tiktiger v2.0
+# Tiktiger 1.1
 
-Tiktiger v2.0 هو إعادة تصميم كاملة وخفيفة لأداة الخصوصية، بواجهة جديدة مستقلة عن بنية النسخة القديمة. تم تقليص نطاق المنتج إلى أربع ميزات خصوصية فقط، وكل ميزة تملك مفتاحًا مستقلًا وHook محميًا لا يغيّر الوحدات الأخرى.
+هذا المستودع هو مصدر Tiktiger 1.1 الجديد، ويحتوي على مشروع iOS المضيف ومشروع `Tiktiger.dylib` وWorkflow بناء حقيقي على macOS/Xcode.
 
-## الميزات
+## البنية
 
-| الميزة | المفتاح | السلوك |
-|---|---|---|
-| Anonymous Profile Visits | `anonymousProfiles` | يمنع تقارير زيارة الملف عند تفعيلها |
-| Keep Story Unseen | `unseenStories` | يمنع مسارات تعليم الستوري كمشاهدة |
-| Keep Messages Unseen | `unreadMessages` | يمنع مزامنة إيصال قراءة الرسائل |
-| Hide Typing | `hideTyping` | يمنع إرسال حالة الكتابة |
+- `Tiktiger_1.1/TigerIOSStarter/`: مشروع iOS المضيف SwiftUI وTigerCore.
+- `Tiktiger_1.1/Xcode_Dylib_Project/`: مشروع `TiktigerDylib.xcodeproj` ومصدر C وPublic API وScripts.
+- `Tiktiger_1.1/Branding/`: الهوية والأصول الجديدة.
+- `Tiktiger_1.1/Docs/` و`Tiktiger_1.1/Integration/`: وثائق البناء والتكامل والاختبار.
+- `.github/workflows/build-tiktiger-ios.yml`: بناء Release فعلي لـ`iphoneos/arm64` والتحقق من Mach-O وMH_DYLIB والرموز وSHA-256.
 
-## التصميم الجديد
+## Real Xcode Build Verification
 
-تستخدم الواجهة لوحة Privacy Lab واحدة بتصميم داكن حديث، وبطاقات مستقلة، وحفظ دائم للحالة، وتبديل عربي/إنجليزي، مع شعار Tiktiger وصورة المطور وغلاف الهوية الجديدة من مجلد `assets/`. تم حذف نموذج الإعدادات القديم وصفوف التنزيل والوسائط والتأكيدات والسرعة والمزايا غير المطلوبة.
+من GitHub افتح **Actions** ثم اختر **Build and Verify Tiktiger 1.1 iOS dylib** واضغط **Run workflow**. لا تعتبر المشروع XCODE VERIFIED إلا بعد ظهور `BUILD SUCCEEDED` ونجاح خطوة التحقق، ثم تحميل Artifact الذي يحتوي `Tiktiger.dylib` و`build.log` و`verification.txt`.
 
-## البناء
+البناء يستخدم `CODE_SIGNING_ALLOWED=NO` و`CODE_SIGNING_REQUIRED=NO` لأن التحقق من dylib لا يساوي توقيع تطبيق مضيف. لا يوجد binary committed في المستودع؛ الناتج الحقيقي ينشأ داخل GitHub Actions فقط.
 
-على macOS أو GitHub Actions مع Theos وiOS SDK:
+## ملاحظات التوقيع والتكامل
 
-```sh
-make clean
-make package FINALPACKAGE=1
-```
-
-يستخرج workflow ملف `Tiktiger.dylib` التنفيذي من داخل `.deb` بعد البناء، ويرفض ملف dSYM، ثم يتحقق من `file` و`lipo` و`otool` وSHA-256. استخدم Artifact الناتج من نفس التشغيل فقط.
-
-## التوافق والسلامة
-
-الكلاسات والـ selectors الخاصة بالمضيف داخلية وليست API عامة. كل Hook يفحص وجود class وselector قبل التسجيل، وعند غياب الهدف يتم تخطيه. يلزم اختبار Runtime على Target مصرح وبنسخة TikTok المحددة؛ نجاح GitHub Actions يثبت البناء والتغليف، ولا يثبت وحده أن كل selector موجود في الإصدار المستهدف.
+Bundle IDs وTeam وProvisioning وEntitlements النهائية للتطبيق المضيف تحتاج حساب Apple Developer مصرحًا. Provider الوسائط وربط Adapter وdylib بتطبيق مضيف مصرح هي خطوات تكامل منفصلة، وليست جزءًا من Real Xcode Build Verification.
