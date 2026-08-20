@@ -316,6 +316,12 @@ jobs:
             if test -z "$SIM_APP"; then
               SIM_STATUS=1
             else
+              if codesign --force --deep --sign - "$SIM_APP" >> "$SMOKE_LOG" 2>&1 && codesign --verify --deep --strict --verbose=2 "$SIM_APP" >> "$SMOKE_LOG" 2>&1; then
+                echo 'SIMULATOR SIGNING: SUCCEEDED' >> "$SMOKE_REPORT"
+              else
+                SIM_STATUS=1
+                echo 'SIMULATOR SIGNING: FAILED' >> "$SMOKE_REPORT"
+              fi
               mkdir -p "$GITHUB_WORKSPACE/simulator_app"
               ditto "$SIM_APP" "$GITHUB_WORKSPACE/simulator_app/TiktigerHost.app"
               printf 'Simulator app: %s\n' "$SIM_APP" > "$GITHUB_WORKSPACE/simulator_app_path.txt"
@@ -464,3 +470,4 @@ jobs:
             runtime_console.log
             runtime_screenshot.png
             runtime_smoke_status.txt
+            simulator_signing_status.txt
