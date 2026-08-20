@@ -124,32 +124,32 @@ jobs:
           esac
 
           if FILE_RESULT="$(file "$OUTPUT" 2>&1)"; then :; else VERIFY_STATUS=1; fi
-          if printf '%s\n' "$FILE_RESULT" | grep -Eiq 'dSYM companion'; then VERIFY_STATUS=1; fi
-          if printf '%s\n' "$FILE_RESULT" | grep -Eiq 'Mach-O'; then :; else VERIFY_STATUS=1; fi
+          if grep -Eiq 'dSYM companion' <<< "$FILE_RESULT"; then VERIFY_STATUS=1; fi
+          if grep -Eiq 'Mach-O' <<< "$FILE_RESULT"; then :; else VERIFY_STATUS=1; fi
 
           if LIPO_RESULT="$(lipo -info "$OUTPUT" 2>&1)"; then :; else VERIFY_STATUS=1; fi
           if ARCH_LIST="$(lipo -archs "$OUTPUT" 2>&1)"; then :; else VERIFY_STATUS=1; fi
-          if printf '%s\n' "$LIPO_RESULT" | grep -Eiq 'arm64'; then :; else VERIFY_STATUS=1; fi
+          if grep -Eiq 'arm64' <<< "$LIPO_RESULT"; then :; else VERIFY_STATUS=1; fi
           if test "$ARCH_LIST" = 'arm64'; then :; else VERIFY_STATUS=1; fi
 
           if OTOOL_HV_RESULT="$(otool -hv "$OUTPUT" 2>&1)"; then :; else VERIFY_STATUS=1; fi
-          if printf '%s\n' "$OTOOL_HV_RESULT" | grep -Eiq 'MH_DYLIB'; then
+          if grep -Eiq 'MH_DYLIB' <<< "$OTOOL_HV_RESULT"; then
             :
-          elif printf '%s\n' "$OTOOL_HV_RESULT" | grep -Eiq 'filetype[[:space:]]+DYLIB'; then
+          elif grep -Eiq 'filetype[[:space:]]+DYLIB' <<< "$OTOOL_HV_RESULT"; then
             :
           else
             VERIFY_STATUS=1
           fi
           if OTOOL_D_RESULT="$(otool -D "$OUTPUT" 2>&1)"; then :; else VERIFY_STATUS=1; fi
           if OTOOL_L_RESULT="$(otool -L "$OUTPUT" 2>&1)"; then :; else VERIFY_STATUS=1; fi
-          if printf '%s\n' "$OTOOL_D_RESULT" | grep -Fq '@rpath/Tiktiger.dylib'; then :; else VERIFY_STATUS=1; fi
+          if grep -Fq '@rpath/Tiktiger.dylib' <<< "$OTOOL_D_RESULT"; then :; else VERIFY_STATUS=1; fi
           if SYMBOL_RESULT="$(nm -gU "$OUTPUT" 2>&1)"; then :; else VERIFY_STATUS=1; fi
           if SHA256_RESULT="$(shasum -a 256 "$OUTPUT" 2>&1)"; then :; else VERIFY_STATUS=1; fi
 
           : > "$SYMBOL_STATUS_FILE"
           REQUIRED_SYMBOLS="tt_product_name tt_version tt_runtime_initialize tt_runtime_dylib_loaded tt_runtime_initializer_executed tt_runtime_core_started tt_runtime_feature_registry_ready tt_runtime_mark_ui_registered tt_runtime_mark_ui_presented tt_runtime_ui_registered tt_runtime_ui_presented tt_runtime_diagnostics_json tt_feature_count tt_feature_key_at tt_set_feature_enabled tt_set_download_stage"
           for symbol in $REQUIRED_SYMBOLS; do
-            if printf '%s\n' "$SYMBOL_RESULT" | grep -Eiq "(^|[[:space:]_])${symbol}([[:space:]]|$)"; then
+            if grep -Eiq "(^|[[:space:]_])${symbol}([[:space:]]|$)" <<< "$SYMBOL_RESULT"; then
               printf '%s: FOUND\n' "$symbol" >> "$SYMBOL_STATUS_FILE"
             else
               printf '%s: FAILED\n' "$symbol" >> "$SYMBOL_STATUS_FILE"
